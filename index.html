@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fitness Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #ffffff;
+      --bg-secondary: #f5f5f3;
+      --bg-tertiary: #eeede8;
+      --text: #1a1a18;
+      --text-secondary: #5f5e5a;
+      --border: rgba(0,0,0,0.12);
+      --border-md: rgba(0,0,0,0.22);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --blue-bg: #E6F1FB; --blue-text: #0C447C;
+      --green-bg: #E1F5EE; --green-text: #085041;
+      --purple-bg: #EEEDFE; --purple-text: #3C3489;
+      --gray-bg: #F1EFE8; --gray-text: #444441;
+      --coral-bg: #FAECE7; --coral-text: #712B13;
+      --amber-bg: #FAEEDA; --amber-text: #633806;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1a; --bg-secondary: #262624; --bg-tertiary: #2e2e2b;
+        --text: #f0efe9; --text-secondary: #a8a7a2;
+        --border: rgba(255,255,255,0.1); --border-md: rgba(255,255,255,0.2);
+        --blue-bg: #042C53; --blue-text: #B5D4F4;
+        --green-bg: #04342C; --green-text: #9FE1CB;
+        --purple-bg: #26215C; --purple-text: #CECBF6;
+        --gray-bg: #2C2C2A; --gray-text: #D3D1C7;
+        --coral-bg: #4A1B0C; --coral-text: #F5C4B3;
+        --amber-bg: #412402; --amber-text: #FAC775;
+      }
+    }
+
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg-tertiary); color: var(--text); line-height: 1.6; min-height: 100vh; }
+
+    header { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 1.25rem 2rem; display: flex; align-items: center; gap: 1rem; }
+    header h1 { font-size: 20px; font-weight: 500; }
+    header p { font-size: 13px; color: var(--text-secondary); }
+
+    nav { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 0 2rem; display: flex; gap: 0; overflow-x: auto; }
+    .nav-tab { padding: 0.875rem 1.25rem; font-size: 14px; cursor: pointer; border: none; background: none; color: var(--text-secondary); border-bottom: 2px solid transparent; white-space: nowrap; }
+    .nav-tab.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+
+    main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+    .card h2 { font-size: 15px; font-weight: 500; margin-bottom: 1rem; }
+
+    .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 20px; margin-right: 4px; }
+    .badge-lift { background: var(--blue-bg); color: var(--blue-text); }
+    .badge-pilates { background: var(--green-bg); color: var(--green-text); }
+    .badge-walk { background: var(--purple-bg); color: var(--purple-text); }
+    .badge-peloton { background: var(--coral-bg); color: var(--coral-text); }
+    .badge-rest { background: var(--gray-bg); color: var(--gray-text); }
+
+    .day-row { display: flex; align-items: flex-start; gap: 12px; padding: 11px 0; border-bottom: 0.5px solid var(--border); }
+    .day-row:last-child { border-bottom: none; }
+    .day-name { font-size: 13px; font-weight: 500; min-width: 90px; padding-top: 3px; }
+    .day-detail { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.25rem; }
+    .week-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; }
+
+    .ex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.25rem; }
+    @media (max-width: 500px) { .ex-grid { grid-template-columns: 1fr; } }
+    .ex-card { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 0.75rem 1rem; }
+    .ex-name { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+    .ex-detail { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+
+    .slider-row { margin-bottom: 1.25rem; }
+    .slider-top { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .slider-label { font-size: 13px; color: var(--text-secondary); }
+    .slider-val { font-size: 13px; font-weight: 500; }
+    input[type=range] { width: 100%; accent-color: var(--text); }
+
+    .metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 1rem; }
+    @media (max-width: 500px) { .metric-grid { grid-template-columns: 1fr 1fr; } }
+    .metric { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 0.875rem 1rem; }
+    .metric-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+    .metric-value { font-size: 22px; font-weight: 500; }
+    .metric-sub { font-size: 11px; color: var(--text-secondary); margin-top: 3px; }
+
+    .meal-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 0.875rem; }
+    .meal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 8px; }
+    .meal-name { font-size: 14px; font-weight: 500; }
+    .meal-macros { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pill { font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+    .pill-cal { background: var(--purple-bg); color: var(--purple-text); }
+    .pill-prot { background: var(--green-bg); color: var(--green-text); }
+    .pill-new { background: #9FE1CB; color: #085041; font-weight: 500; }
+    .food-row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+    .food-row:last-child { border-bottom: none; }
+    .food-name { color: var(--text-secondary); }
+    .food-detail { font-size: 12px; }
+    .food-row.orgain { background: var(--green-bg); margin: 0 -1.25rem; padding: 7px 1.25rem; }
+    .food-row.orgain .food-name { color: var(--green-text); font-weight: 500; }
+    .food-row.orgain .food-detail { color: var(--green-text); }
+
+    .total-bar { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 0.875rem 1rem; display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; }
+    .total-label { font-size: 13px; font-weight: 500; }
+    .total-nums { display: flex; gap: 12px; font-size: 13px; color: var(--text-secondary); }
+
+    .note { font-size: 12px; color: var(--text-secondary); background: var(--bg-secondary); border-radius: var(--radius-md); padding: 0.875rem 1rem; margin-top: 0.875rem; line-height: 1.6; }
+    .tip-row { padding: 10px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .tip-row:last-child { border-bottom: none; }
+    .tip-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+    .orgain-tip { font-size: 12px; color: var(--green-text); background: var(--green-bg); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1rem; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Fitness Tracker</h1>
+    <p>Personal health &amp; fitness plan — updated April 2026</p>
+  </div>
+</header>
+
+<nav>
+  <button class="nav-tab active" onclick="showSection('schedule')">Schedule</button>
+  <button class="nav-tab" onclick="showSection('exercises')">Exercises</button>
+  <button class="nav-tab" onclick="showSection('nutrition')">Nutrition</button>
+  <button class="nav-tab" onclick="showSection('meals')">Meal Plan</button>
+</nav>
+
+<main>
+
+  <!-- SCHEDULE -->
+  <div id="schedule" class="section active">
+    <div class="card">
+      <div class="legend">
+        <span class="badge badge-lift">Lifting</span>
+        <span class="badge badge-pilates">Pilates</span>
+        <span class="badge badge-walk">Walk</span>
+        <span class="badge badge-peloton">Peloton</span>
+        <span class="badge badge-rest">Rest</span>
+      </div>
+      <div class="week-label">Weekly plan</div>
+      <div class="day-row"><div class="day-name">Monday</div><div class="day-detail"><span class="badge badge-walk">Walk</span><span class="badge badge-lift">Lifting A</span> Commute walk + 30 min lifting — goblet squat, RDL, push-up</div></div>
+      <div class="day-row"><div class="day-name">Tuesday</div><div class="day-detail"><span class="badge badge-walk">Walk</span><span class="badge badge-peloton">Peloton</span> Commute walk + 30 min power zone ride — Zone 2/3 endurance</div></div>
+      <div class="day-row"><div class="day-name">Wednesday</div><div class="day-detail"><span class="badge badge-pilates">Pilates</span> Regular class — active recovery</div></div>
+      <div class="day-row"><div class="day-name">Thursday</div><div class="day-detail"><span class="badge badge-walk">Walk</span><span class="badge badge-lift">Lifting B</span> Commute walk + 30 min lifting — glute bridge, row, core</div></div>
+      <div class="day-row"><div class="day-name">Friday</div><div class="day-detail"><span class="badge badge-pilates">Pilates</span><span class="badge badge-peloton">Peloton</span> Pilates class + optional 20 min Zone 2 ride if energy allows</div></div>
+      <div class="day-row"><div class="day-name">Saturday</div><div class="day-detail"><span class="badge badge-rest">Rest</span> Full rest or leisure walk</div></div>
+      <div class="day-row"><div class="day-name">Sunday</div><div class="day-detail"><span class="badge badge-rest">Rest</span> Full rest — or swap with Friday Peloton if needed</div></div>
+    </div>
+    <div class="card">
+      <div class="week-label">Weeks 5–8 progression</div>
+      <div class="day-row"><div class="day-name">Lifting</div><div class="day-detail">Add 1 set per exercise (2 → 3 sets). Increase weight by 5 lbs when last 2 reps feel easy.</div></div>
+      <div class="day-row"><div class="day-name">Walking</div><div class="day-detail">Extend one walk to 1.5–2 miles for added calorie burn.</div></div>
+      <div class="day-row"><div class="day-name">Peloton</div><div class="day-detail">Gradually extend Tuesday ride to 45 min. Explore Power Zone Max rides for Zone 4/5 intervals.</div></div>
+    </div>
+  </div>
+
+  <!-- EXERCISES -->
+  <div id="exercises" class="section">
+    <div class="card">
+      <h2>Workout A — lower body + push</h2>
+      <div class="ex-grid">
+        <div class="ex-card"><div class="ex-name">Goblet squat</div><div class="ex-detail">2 sets × 10–12 reps<br>Hold 1 dumbbell at chest. Squat deep, chest tall.</div></div>
+        <div class="ex-card"><div class="ex-name">Romanian deadlift</div><div class="ex-detail">2 sets × 10–12 reps<br>Hinge at hips, soft knees. Feel the hamstring stretch.</div></div>
+        <div class="ex-card"><div class="ex-name">Push-up variation</div><div class="ex-detail">2 sets × 8–12 reps<br>Incline (hands on bench) to start. Go to floor when ready.</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Workout B — upper body + glutes</h2>
+      <div class="ex-grid">
+        <div class="ex-card"><div class="ex-name">Glute bridge</div><div class="ex-detail">2 sets × 12–15 reps<br>Drive hips up, squeeze at top for 2 sec. Add dumbbell later.</div></div>
+        <div class="ex-card"><div class="ex-name">Dumbbell row</div><div class="ex-detail">2 sets × 10–12 reps<br>Brace on bench, pull elbow to hip. Both sides.</div></div>
+        <div class="ex-card"><div class="ex-name">Dead bug</div><div class="ex-detail">2 sets × 8 reps per side<br>Complements Pilates core work perfectly.</div></div>
+        <div class="ex-card"><div class="ex-name">Banded clamshell</div><div class="ex-detail">2 sets × 15 reps<br>Hip health and knee protection. Great warm-up too.</div></div>
+      </div>
+      <div class="note">Rest 60–90 sec between sets. Total time ~30 min. Add 5 lbs when the last 2 reps feel easy, not just fine.</div>
+    </div>
+    <div class="card">
+      <h2>Peloton rides</h2>
+      <div class="ex-card" style="margin-bottom:10px;">
+        <div class="ex-name">Tuesday — Power Zone Endurance (30 min)</div>
+        <div class="ex-detail">Stay in Zone 2 the whole ride. Matt Wilpers and Christine D'Ercole are the best PZ instructors. Filter by "Power Zone Endurance" in the app. Fat-burning session.</div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-name">Friday — Power Zone (20–30 min)</div>
+        <div class="ex-detail">Standard Power Zone ride — dips into Zone 3/4 briefly. Fine after Pilates since it's short. Builds aerobic capacity without wrecking weekend recovery.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NUTRITION CALCULATOR -->
+  <div id="nutrition" class="section">
+    <div class="card">
+      <h2>Calorie deficit calculator</h2>
+      <p style="font-size:13px; color:var(--text-secondary); margin-bottom:1.25rem; line-height:1.5;">Adjust the sliders to estimate your targets. Starting points — real needs vary based on activity, hormones, and metabolism.</p>
+
+      <div class="slider-row">
+        <div class="slider-top"><span class="slider-label">Current weight</span><span class="slider-val" id="w-out">240 lbs</span></div>
+        <input type="range" min="150" max="350" value="240" step="5" id="w-sl" oninput="calc()" />
+      </div>
+      <div class="slider-row">
+        <div class="slider-top"><span class="slider-label">Goal weight</span><span class="slider-val" id="g-out">200 lbs</span></div>
+        <input type="range" min="120" max="300" value="200" step="5" id="g-sl" oninput="calc()" />
+      </div>
+      <div class="slider-row">
+        <div class="slider-top"><span class="slider-label">Age</span><span class="slider-val" id="a-out">44</span></div>
+        <input type="range" min="25" max="70" value="44" step="1" id="a-sl" oninput="calc()" />
+      </div>
+      <div class="slider-row" style="margin-bottom:0;">
+        <div class="slider-top"><span class="slider-label">Deficit level</span><span class="slider-val" id="d-out">Moderate (500 cal)</span></div>
+        <input type="range" min="1" max="3" value="2" step="1" id="d-sl" oninput="calc()" />
+      </div>
+    </div>
+
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">Daily calories</div><div class="metric-value" id="m-cal">—</div><div class="metric-sub" id="m-tdee">—</div></div>
+      <div class="metric"><div class="metric-label">Daily protein</div><div class="metric-value" id="m-prot">—</div><div class="metric-sub">target grams</div></div>
+      <div class="metric"><div class="metric-label">Est. timeline</div><div class="metric-value" id="m-time">—</div><div class="metric-sub" id="m-pace">—</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Nutrition tips</h2>
+      <div class="tip-row"><div class="tip-title">Protein first at every meal</div>Chicken, fish, eggs, Greek yogurt, cottage cheese, legumes. Protein keeps you full and protects the muscle you're building.</div>
+      <div class="tip-row"><div class="tip-title">Don't slash calories too hard</div>Going below 1,600–1,700 cal backfires — you lose muscle, feel terrible, and stall. Moderate deficit wins long-term.</div>
+      <div class="tip-row"><div class="tip-title">Watch liquid calories</div>Lattes, juice, and dressings are the biggest hidden sources. Swapping these alone can create a meaningful deficit.</div>
+      <div class="tip-row"><div class="tip-title">Track for 2–3 weeks only</div>Just long enough to calibrate your sense of portions — then you'll know intuitively what a reasonable day looks like.</div>
+    </div>
+  </div>
+
+  <!-- MEAL PLAN -->
+  <div id="meals" class="section">
+    <div class="orgain-tip">Orgain Organic Protein powder (whey): ~21g protein, ~150 cal per scoop. Stir into Greek yogurt at breakfast — easiest protein boost you can make.</div>
+
+    <div class="meal-card">
+      <div class="meal-header">
+        <div class="meal-name">Breakfast</div>
+        <div class="meal-macros"><span class="pill pill-cal">~570 cal</span><span class="pill pill-prot">63g protein</span><span class="pill pill-new">Orgain included</span></div>
+      </div>
+      <div class="food-row"><span class="food-name">Greek yogurt (plain, 2%)</span><span class="food-detail">1 cup — 20g protein</span></div>
+      <div class="food-row orgain"><span class="food-name">Orgain protein powder (1 scoop)</span><span class="food-detail">stirred into yogurt — 21g protein</span></div>
+      <div class="food-row"><span class="food-name">Eggs, scrambled</span><span class="food-detail">2 whole eggs — 12g protein</span></div>
+      <div class="food-row"><span class="food-name">Berries (frozen is fine)</span><span class="food-detail">½ cup — thaw overnight in yogurt</span></div>
+      <div class="food-row"><span class="food-name">Coffee</span><span class="food-detail">black or small splash of milk</span></div>
+    </div>
+
+    <div class="meal-card">
+      <div class="meal-header">
+        <div class="meal-name">Lunch</div>
+        <div class="meal-macros"><span class="pill pill-cal">~520 cal</span><span class="pill pill-prot">48g protein</span></div>
+      </div>
+      <div class="food-row"><span class="food-name">Grilled chicken breast</span><span class="food-detail">5 oz — 43g protein</span></div>
+      <div class="food-row"><span class="food-name">Mixed greens + cucumber + tomato</span><span class="food-detail">big bowl</span></div>
+      <div class="food-row"><span class="food-name">Olive oil + lemon dressing</span><span class="food-detail">1 tbsp oil</span></div>
+      <div class="food-row"><span class="food-name">Chickpeas</span><span class="food-detail">½ cup — extra fiber + 5g protein</span></div>
+    </div>
+
+    <div class="meal-card">
+      <div class="meal-header">
+        <div class="meal-name">Snack</div>
+        <div class="meal-macros"><span class="pill pill-cal">~120 cal</span><span class="pill pill-prot">14g protein</span></div>
+      </div>
+      <div class="food-row"><span class="food-name">String cheese (1 stick)</span><span class="food-detail">~8g protein, easy grab-and-go</span></div>
+      <div class="food-row"><span class="food-name">Apple or celery sticks</span><span class="food-detail">fiber, keeps you full</span></div>
+    </div>
+
+    <div class="meal-card">
+      <div class="meal-header">
+        <div class="meal-name">Dinner</div>
+        <div class="meal-macros"><span class="pill pill-cal">~580 cal</span><span class="pill pill-prot">45g protein</span></div>
+      </div>
+      <div class="food-row"><span class="food-name">Salmon fillet</span><span class="food-detail">5 oz — 35g protein + omega-3s</span></div>
+      <div class="food-row"><span class="food-name">Roasted broccoli + zucchini</span><span class="food-detail">2 cups — fills the plate</span></div>
+      <div class="food-row"><span class="food-name">Sweet potato (small)</span><span class="food-detail">½ cup — quality carbs for workouts</span></div>
+      <div class="food-row"><span class="food-name">Olive oil for roasting</span><span class="food-detail">1 tbsp</span></div>
+    </div>
+
+    <div class="total-bar">
+      <span class="total-label">Day total</span>
+      <div class="total-nums"><span>~1,900 cal</span><span>~170g protein</span></div>
+    </div>
+
+    <div class="note">On lifting days, have your snack within an hour after your workout. Swap salmon for chicken thighs, tuna, or shrimp on other nights. Prep yogurt + Orgain the night before — faster than toasting waffles.</div>
+  </div>
+
+</main>
+
+<script>
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function calc() {
+  const w = parseInt(document.getElementById('w-sl').value);
+  const g = parseInt(document.getElementById('g-sl').value);
+  const a = parseInt(document.getElementById('a-sl').value);
+  const d = parseInt(document.getElementById('d-sl').value);
+  document.getElementById('w-out').textContent = w + ' lbs';
+  document.getElementById('g-out').textContent = g + ' lbs';
+  document.getElementById('a-out').textContent = a;
+  const deficitMap = { 1: [250, 'Gentle (250 cal)', 0.5], 2: [500, 'Moderate (500 cal)', 1], 3: [750, 'Aggressive (750 cal)', 1.5] };
+  const [defCal, defLabel, lbsPerWeek] = deficitMap[d];
+  document.getElementById('d-out').textContent = defLabel;
+  const wKg = w * 0.453592;
+  const bmr = Math.round(10 * wKg + 6.25 * 170 - 5 * a - 161);
+  const tdee = Math.round(bmr * 1.45);
+  const calories = Math.max(1600, tdee - defCal);
+  const protein = Math.round(g * 0.9);
+  const lbsToLose = Math.max(0, w - g);
+  const months = (lbsToLose / (lbsPerWeek * 4.3)).toFixed(1);
+  document.getElementById('m-cal').textContent = calories.toLocaleString();
+  document.getElementById('m-tdee').textContent = 'maintenance: ~' + tdee.toLocaleString();
+  document.getElementById('m-prot').textContent = protein + 'g';
+  document.getElementById('m-time').textContent = lbsToLose > 0 ? months + ' mo' : '—';
+  document.getElementById('m-pace').textContent = lbsToLose > 0 ? lbsPerWeek + ' lb/week pace' : 'at goal!';
+}
+calc();
+</script>
+</body>
+</html>
