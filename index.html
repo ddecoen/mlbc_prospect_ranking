@@ -210,9 +210,6 @@
     white-space: nowrap;
     cursor: pointer;
     user-select: none;
-    /* Sticky: sits below header(64px) + controls(~53px) */
-    top: 117px;
-    z-index: 10;
   }
   thead th:hover { color: var(--accent); }
   thead th.sorted { color: var(--accent); }
@@ -223,7 +220,7 @@
     transition: background .1s;
   }
   tbody tr:hover { background: var(--surface2); }
-  td { padding: 9px 12px; white-space: nowrap; }
+
 
   /* rank */
   .td-rank {
@@ -288,7 +285,8 @@
   .score-fld .score-bar { background: #a78bfa; }
 
   /* bonus pills */
-  .bonus-pills { display: flex; gap: 3px; flex-wrap: wrap; max-width: 140px; overflow: hidden; }
+  .bonus-pills { display: flex; gap: 3px; flex-wrap: wrap; max-width: 160px; }
+  td { padding: 9px 12px; white-space: nowrap; overflow: hidden; max-width: 200px; }
   .pill {
     padding: 1px 5px;
     border-radius: 2px;
