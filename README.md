@@ -88,28 +88,44 @@ These bonuses recognize archetypes the sim rewards but raw grades don't fully ca
 
 ### STUFF Score
 
-Built entirely from **per-pitch weighted OPS against**, using actual batter handedness distribution from the league:
+The pitcher model is built on one core insight: **in a sim with fixed pitch probability distributions, W_OPS is a complete and sufficient quality metric.**
 
-- **LHP** faces 76.4% right-handed batters (R + switch batting right vs LHP)
-- **RHP** faces 64.7% right-handed batters
+The sim engine selects pitches randomly according to each pitcher's usage percentages (`P1_Qual` through `P6_Qual`). You cannot instruct your pitcher to throw his fastball more often — the probabilities are fixed. This means:
 
-Each pitch is weighted by its usage percentage (the `P1_Qual` through `P6_Qual` columns represent the fraction of pitches thrown, e.g. 0.23 = 23%). The model rewards pitchers who **throw their best pitches most often**.
+- The **best pitch** is already weighted into W_OPS by how often the sim calls it
+- The **worst pitch** is already weighted into W_OPS by how often the sim calls it
+- **Pitch count** doesn't matter — a 3-pitch pitcher who dominates with all three is equal to a 5-pitch pitcher with the same W_OPS
+- **Top-2 or bottom-1 metrics** double-count what W_OPS already captures
+
+The only independent signal is **K/BB** — walks and strikeouts are not captured in per-pitch OPS splits, and command is genuinely pitcher-controlled regardless of what the sim randomly selects.
 
 | Component | Weight | Stat | Logic |
 |-----------|--------|------|-------|
-| W_OPS | 40% | Usage-weighted OPS against all pitches | Overall quality signal — what batters actually do |
-| Top2_W | 30% | Weighted avg OPS of the two most-thrown pitches | Rewards leaning on best stuff; fixes multi-pitch count bias |
-| Best_OPS | 15% | OPS against the single best pitch | Ace weapon ceiling — the pitch that gets big outs |
-| K/BB | 10% | `P_SO / P_BB` | Command and control — pitcher-controlled outcomes |
-| K Rate | 5% | `P_SO` | Strikeouts are the only truly pitcher-controlled out |
+| W_OPS | 85% | Usage-weighted OPS against across all pitches | Complete pitch quality signal — captures best, worst, and mix simultaneously |
+| K/BB | 15% | `P_SO / P_BB` | Only independent signal; command is pitcher-controlled |
 
-**Why strikeouts over ground balls:** A strikeout cannot become a hit, error, or double play ball gone wrong. Ground ball outs depend on defense, park, and luck. GB% is already implicitly captured in W_OPS (a ground ball specialist allows fewer hits, which shows in P_H and P_HR). Rewarding GB% separately double-counts it while disadvantaging legitimate strikeout pitchers.
+**How W_OPS is computed:**
+
+W_OPS uses the actual batter handedness distribution from the league, not a naive 50/50 split:
+
+- **LHP** faces 76.4% RHH (R batters + switch hitters batting right vs LHP)
+- **RHP** faces 64.7% RHH
+
+For each pitch: `OPS_weighted = OPS_vL × handedness_weight_L + OPS_vR × handedness_weight_R`
+
+Then: `W_OPS = Σ(pitch_usage × OPS_weighted)` across all pitches
+
+This gives the true expected OPS on any randomly selected pitch, accounting for the actual distribution of batter types the pitcher will face.
+
+**Why not GB%?** Ground ball rate is already implicit in W_OPS — a ground ball specialist allows fewer hits and fewer home runs, which shows up directly in his pitch OPS splits. Adding GB% as a separate component double-counts the same information while unfairly disadvantaging strikeout pitchers who achieve the same W_OPS through a different approach.
+
+**Why not K rate separately?** Strikeouts are the best possible outcome (no baserunner, no defense required), but their value is already reflected in the per-pitch OPS against. A pitcher who strikes out 200 batters per 600 has a lower OPS against than one who strikes out 80, all else equal.
 
 **Endurance (END) as a gate only:**
 - END ≥ 5.0 → Starter-eligible, no adjustment
 - END < 5.0 → Reliever penalty (−5 points)
 
-Endurance affects *volume* of contribution, not *quality*. A pitcher with END=5.5 and elite stuff is more valuable than one with END=8.0 and mediocre stuff. The gate prevents relievers from being overrated relative to starters but does not otherwise favor workhorse arms over quality arms.
+Endurance affects *volume* of contribution, not *quality*. The gate prevents relievers from being overrated relative to starters but does not otherwise favor workhorse arms. A pitcher with END=5.5 and elite W_OPS is correctly ranked above one with END=8.0 and mediocre W_OPS.
 
 ---
 
@@ -143,7 +159,9 @@ Bins are calibrated to the **full non-ML prospect population** so grades are con
 
 **Positional premiums instead of defensive scoring inflation:** Rather than letting fielding grades inflate overall scores for corner players (a known bug in earlier versions of this model), positional scarcity is handled as a clean additive bonus. This correctly ranks a .850 OPS shortstop above a .850 OPS first baseman without letting IF_Rng artificially boost a first baseman's score.
 
-**Per-pitch OPS with usage weighting:** The sim's pitch quality is reflected in per-pitch OPS against (each pitch has vL and vR OPS splits). A pitcher who throws his best pitch 50% of the time is more effective than one who buries it at 15% usage. The Top2_W component specifically rewards this — it finds the two most-thrown pitches and scores their quality, rewarding pitchers who lean on their best weapons.
+**W_OPS as the complete pitcher signal:** Early versions of the model added components like Top-2 pitch quality, worst pitch OPS, and strikeout rate on top of W_OPS. All of these are wrong for the same reason: the sim selects pitches from a fixed probability distribution. You cannot instruct your pitcher to throw his fastball more. Because the usage percentages are fixed sim probabilities, W_OPS already captures every aspect of pitch quality — the best pitch is weighted by how often the sim calls it, the worst pitch is weighted by how often the sim calls it, and everything in between. Adding any pitch-specific component on top of W_OPS is double-counting. K/BB is the only genuinely independent signal because walks aren't captured in per-pitch OPS splits.
+
+**No GB% for pitchers:** Ground ball rate is already embedded in W_OPS — a pitcher who generates grounders allows fewer hits and fewer home runs, which shows directly in his pitch OPS against. Adding GB% as a separate term double-counts it while penalizing strikeout pitchers who achieve the same W_OPS through a different approach. Both are valid pitcher archetypes; W_OPS correctly treats them equivalently at the same run prevention level.
 
 ---
 
@@ -153,7 +171,7 @@ The app expects the standard MLBC CSV export format. Key columns used:
 
 **Hitters:** `Bat`, `Throw`, `Run`, `Arm`, `IF_Rng`, `OF_Rng`, `Fld`, `B_H`, `B_B2`, `B_B3`, `B_HR`, `B_BB`, `B_SO`, `vL_OBP`, `vL_SLG`, `vR_OBP`, `vR_SLG`, `Pull`, `B_GB`
 
-**Pitchers:** `Throw`, `END`, `P_SO`, `P_BB`, `P_GB`, `P1`–`P6`, `P1_Qual`–`P6_Qual`, `P1_vL_OBP`–`P6_vR_SLG`
+**Pitchers:** `Throw`, `END`, `P_SO`, `P_BB`, `P1`–`P6`, `P1_Qual`–`P6_Qual`, `P1_vL_OBP`–`P6_vR_SLG`
 
 **Both:** `Last`, `First`, `Age`, `Pos`, `Team`, `Level`
 

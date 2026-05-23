@@ -513,14 +513,8 @@ const FLD_GRD   = [20,25,30,35,40,45,50,55,60,65,70,75];
 
 const WOPS_BINS = [0.50,0.575,0.600,0.625,0.650,0.675,0.700,0.730,0.765,0.810,0.870,1.00];
 const WOPS_GRD  = [80,75,70,65,60,55,50,45,40,35,30];
-const BOPS_BINS = [0.45,0.550,0.575,0.600,0.625,0.650,0.680,0.715,0.760,0.820,0.880,1.00];
-const BOPS_GRD  = [80,75,70,65,60,55,50,45,40,35,30];
-const TOP2_BINS = [0.50,0.560,0.585,0.610,0.635,0.660,0.685,0.720,0.760,0.810,0.870,1.00];
-const TOP2_GRD  = [80,75,70,65,60,55,50,45,40,35,30];
 const KBB_P_BINS= [0.0,0.9,1.2,1.5,1.8,2.1,2.4,2.8,3.2,3.7,4.3,10.0];
 const KBB_P_GRD = [20,25,30,35,40,45,50,55,60,65,70];
-const PSO_BINS  = [0,30,45,60,75,90,105,125,150,175,210,300];
-const PSO_GRD   = [20,25,30,35,40,45,50,55,60,65,70];
 
 const POS_PREMIUM = {C:3.0,SS:2.0,CF:1.5,'2B':0.5,'3B':0.5,RF:0,LF:0,'1B':-0.5};
 
@@ -704,39 +698,33 @@ function scorePitcher(r) {
   const wR = throw_==='L' ? 0.764 : 0.647;
   const wL = throw_==='L' ? 0.236 : 0.353;
 
-  // Per-pitch metrics
-  let totalQual=0, wOps=0, bestOps=1.5;
-  let pitches=[];
+  // Per-pitch metrics — W_OPS is the only thing that matters
+  // It already captures best pitch, worst pitch, and pitch mix
+  // via the fixed probability weights the sim uses on every pitch
+  let totalQual=0, wOps=0;
   for (let i=1; i<=6; i++) {
     const name= r[`P${i}`];
     const qual= +(r[`P${i}_Qual`]||0);
     if (!name || !name.trim() || qual<=0) continue;
     const opsL= +(r[`P${i}_vL_OBP`]||0) + +(r[`P${i}_vL_SLG`]||0);
     const opsR= +(r[`P${i}_vR_OBP`]||0) + +(r[`P${i}_vR_SLG`]||0);
-    const opsW= opsL*wL + opsR*wR;
-    wOps += qual*opsW; totalQual += qual;
-    if (opsW < bestOps) bestOps = opsW;
-    pitches.push({qual, opsW, name});
+    wOps += qual*(opsL*wL + opsR*wR);
+    totalQual += qual;
   }
   if (totalQual === 0) return null;
   const wOpsAvg = wOps / totalQual;
-  // Top 2 by usage
-  pitches.sort((a,b)=>b.qual-a.qual);
-  const top2 = pitches.slice(0,2);
-  const t2tot = top2.reduce((s,p)=>s+p.qual,0);
-  const top2W = top2.reduce((s,p)=>s+p.qual*p.opsW,0) / (t2tot||1);
 
   const kbb  = +(r.P_BB||0)>0 ? +(r.P_SO||0)/+(r.P_BB||0) : 0;
   const end  = +(r.END||0);
   const isSP = end >= 5.0;
 
   const wOpsG = gradeVal(wOpsAvg, WOPS_BINS, WOPS_GRD);
-  const bestG = gradeVal(bestOps,  BOPS_BINS, BOPS_GRD);
-  const top2G = gradeVal(top2W,    TOP2_BINS, TOP2_GRD);
-  const kbbG  = gradeVal(kbb,      KBB_P_BINS,KBB_P_GRD);
-  const psoG  = gradeVal(+(r.P_SO||0), PSO_BINS, PSO_GRD);
+  const kbbG  = gradeVal(kbb,     KBB_P_BINS, KBB_P_GRD);
 
-  const stuff = (wOpsG||0)*.40 + (top2G||0)*.30 + (bestG||0)*.15 + (kbbG||0)*.10 + (psoG||0)*.05;
+  // STUFF = W_OPS 85% + KBB 15%
+  // W_OPS is the complete pitch quality signal for a fixed-probability sim.
+  // K/BB is the only independent signal (walks aren't captured in pitch OPS).
+  const stuff = (wOpsG||0)*0.85 + (kbbG||0)*0.15;
   const endMod = isSP ? 0 : -5;
   const overall = stuff + endMod;
 
@@ -749,7 +737,7 @@ function scorePitcher(r) {
     runG:null, armG:null, fldG:null,
     obp:null, ops:null, hr:null, bb:null, so:null, run:null,
     posBonus:null, powBonus:null, loBonus:null, batBonus:null, htPen:null,
-    wops:wOpsAvg, bestOps, top2W, end, kbb,
+    wops:wOpsAvg, end, kbb,
     p_so:+(r.P_SO||0), p_bb:+(r.P_BB||0), p_gb:+(r.P_GB||0)
   };
 }
@@ -858,7 +846,7 @@ function renderTable() {
     } else {
       const g = (v,lo=45,hi=65) => v===null?'—':`<span class="${v>=hi?'grade-hi':v<=lo?'grade-lo':'grade'}">${v}</span>`;
       gradesHtml = `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)">
-        WOPS:${g(gradeVal(r.wops,WOPS_BINS,WOPS_GRD))} KBB:${g(gradeVal(r.kbb,KBB_P_BINS,KBB_P_GRD))} SO:${g(gradeVal(r.p_so,PSO_BINS,PSO_GRD))}
+        WOPS:${g(gradeVal(r.wops,WOPS_BINS,WOPS_GRD))} KBB:${g(gradeVal(r.kbb,KBB_P_BINS,KBB_P_GRD))}
       </span>`;
     }
 
