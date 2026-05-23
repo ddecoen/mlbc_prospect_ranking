@@ -1,330 +1,940 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fitness Tracker</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLBC Prospect Ranker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111418;
+    --surface2: #1a1f26;
+    --border: #252b35;
+    --accent: #e8a020;
+    --accent2: #4a9eff;
+    --accent3: #3ddc84;
+    --text: #e8ecf0;
+    --text2: #8a95a3;
+    --text3: #4a5568;
+    --danger: #ff4757;
+    --pitcher: #4a9eff;
+    --hitter: #3ddc84;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
 
-    :root {
-      --bg: #ffffff;
-      --bg-secondary: #f5f5f3;
-      --bg-tertiary: #eeede8;
-      --text: #1a1a18;
-      --text-secondary: #5f5e5a;
-      --border: rgba(0,0,0,0.12);
-      --border-md: rgba(0,0,0,0.22);
-      --radius-md: 8px;
-      --radius-lg: 12px;
-      --blue-bg: #E6F1FB; --blue-text: #0C447C;
-      --green-bg: #E1F5EE; --green-text: #085041;
-      --purple-bg: #EEEDFE; --purple-text: #3C3489;
-      --gray-bg: #F1EFE8; --gray-text: #444441;
-      --coral-bg: #FAECE7; --coral-text: #712B13;
-      --amber-bg: #FAEEDA; --amber-text: #633806;
-    }
+  /* ── HEADER ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .logo span { color: var(--text2); font-size: 16px; letter-spacing: 1px; margin-left: 8px; }
+  .header-stats {
+    margin-left: auto;
+    display: flex;
+    gap: 24px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .header-stat strong { color: var(--accent); }
 
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #1c1c1a; --bg-secondary: #262624; --bg-tertiary: #2e2e2b;
-        --text: #f0efe9; --text-secondary: #a8a7a2;
-        --border: rgba(255,255,255,0.1); --border-md: rgba(255,255,255,0.2);
-        --blue-bg: #042C53; --blue-text: #B5D4F4;
-        --green-bg: #04342C; --green-text: #9FE1CB;
-        --purple-bg: #26215C; --purple-text: #CECBF6;
-        --gray-bg: #2C2C2A; --gray-text: #D3D1C7;
-        --coral-bg: #4A1B0C; --coral-text: #F5C4B3;
-        --amber-bg: #412402; --amber-text: #FAC775;
-      }
-    }
+  /* ── UPLOAD ZONE ── */
+  .upload-zone {
+    max-width: 900px;
+    margin: 48px auto;
+    padding: 0 24px;
+  }
+  .upload-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    letter-spacing: 2px;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .upload-title span { color: var(--accent); }
+  .upload-sub {
+    color: var(--text2);
+    margin-bottom: 40px;
+    font-size: 15px;
+  }
+  .upload-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .upload-card {
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 32px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+  }
+  .upload-card:hover { border-color: var(--accent); background: var(--surface2); }
+  .upload-card.loaded { border-color: var(--accent3); border-style: solid; }
+  .upload-card input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-icon { font-size: 32px; margin-bottom: 12px; }
+  .upload-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .upload-hint { color: var(--text2); font-size: 12px; }
+  .upload-status {
+    font-size: 12px;
+    margin-top: 8px;
+    color: var(--accent3);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .run-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .run-btn:hover { background: #f5b030; transform: translateY(-1px); }
+  .run-btn:disabled { background: var(--border); color: var(--text3); cursor: not-allowed; transform: none; }
 
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg-tertiary); color: var(--text); line-height: 1.6; min-height: 100vh; }
+  /* ── CONTROLS ── */
+  .controls {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .filter-group { display: flex; align-items: center; gap: 8px; }
+  .filter-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); }
+  select, input[type=text] {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+  }
+  select:focus, input[type=text]:focus { border-color: var(--accent); }
+  .btn-group { display: flex; gap: 4px; }
+  .btn-toggle {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    transition: all .15s;
+  }
+  .btn-toggle.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+  .btn-toggle.active-p { background: var(--pitcher); border-color: var(--pitcher); color: #000; }
+  .btn-toggle.active-h { background: var(--hitter); border-color: var(--hitter); color: #000; }
+  .export-btn {
+    margin-left: auto;
+    padding: 6px 16px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    transition: all .15s;
+  }
+  .export-btn:hover { background: var(--accent); color: #000; }
 
-    header { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 1.25rem 2rem; display: flex; align-items: center; gap: 1rem; }
-    header h1 { font-size: 20px; font-weight: 500; }
-    header p { font-size: 13px; color: var(--text-secondary); }
+  /* ── TABLE ── */
+  .table-wrap {
+    padding: 0 0 80px;
+    overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: var(--surface);
+    padding: 10px 12px;
+    text-align: left;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    color: var(--text2);
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    position: sticky;
+    top: 64px;
+  }
+  thead th:hover { color: var(--accent); }
+  thead th.sorted { color: var(--accent); }
+  thead th .sort-arrow { margin-left: 4px; opacity: .5; }
+  thead th.sorted .sort-arrow { opacity: 1; }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+  }
+  tbody tr:hover { background: var(--surface2); }
+  td { padding: 9px 12px; white-space: nowrap; }
 
-    nav { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 0 2rem; display: flex; gap: 0; overflow-x: auto; }
-    .nav-tab { padding: 0.875rem 1.25rem; font-size: 14px; cursor: pointer; border: none; background: none; color: var(--text-secondary); border-bottom: 2px solid transparent; white-space: nowrap; }
-    .nav-tab.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+  /* rank */
+  .td-rank {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    width: 40px;
+  }
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 20px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .rank-1  { background: #ffd700; color: #000; }
+  .rank-2  { background: #c0c0c0; color: #000; }
+  .rank-3  { background: #cd7f32; color: #000; }
 
-    main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; }
+  /* name */
+  .td-name { font-weight: 500; }
+  .td-name .fname { color: var(--text2); font-weight: 400; margin-right: 4px; }
 
-    .section { display: none; }
-    .section.active { display: block; }
+  /* type badge */
+  .type-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: .5px;
+  }
+  .type-P { background: rgba(74,158,255,.15); color: var(--pitcher); }
+  .type-H { background: rgba(61,220,132,.15); color: var(--hitter); }
 
-    .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
-    .card h2 { font-size: 15px; font-weight: 500; margin-bottom: 1rem; }
+  /* level badge */
+  .lvl-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .lvl-AAA { background: rgba(232,160,32,.2); color: var(--accent); }
+  .lvl-AA  { background: rgba(232,160,32,.1); color: #b87a10; }
+  .lvl-A   { background: rgba(255,255,255,.05); color: var(--text2); }
+  .lvl-IA  { background: rgba(255,71,87,.1); color: var(--danger); }
 
-    .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 20px; margin-right: 4px; }
-    .badge-lift { background: var(--blue-bg); color: var(--blue-text); }
-    .badge-pilates { background: var(--green-bg); color: var(--green-text); }
-    .badge-walk { background: var(--purple-bg); color: var(--purple-text); }
-    .badge-peloton { background: var(--coral-bg); color: var(--coral-text); }
-    .badge-rest { background: var(--gray-bg); color: var(--gray-text); }
+  /* score bar */
+  .score-cell { display: flex; align-items: center; gap: 8px; }
+  .score-bar-wrap { width: 60px; height: 4px; background: var(--border); border-radius: 2px; flex-shrink: 0; }
+  .score-bar { height: 100%; border-radius: 2px; }
+  .score-val { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; width: 36px; }
+  .score-overall .score-val { color: var(--accent); font-size: 14px; }
+  .score-overall .score-bar { background: var(--accent); }
+  .score-hit .score-bar { background: var(--hitter); }
+  .score-stuff .score-bar { background: var(--pitcher); }
+  .score-fld .score-bar { background: #a78bfa; }
 
-    .day-row { display: flex; align-items: flex-start; gap: 12px; padding: 11px 0; border-bottom: 0.5px solid var(--border); }
-    .day-row:last-child { border-bottom: none; }
-    .day-name { font-size: 13px; font-weight: 500; min-width: 90px; padding-top: 3px; }
-    .day-detail { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+  /* bonus pills */
+  .bonus-pills { display: flex; gap: 3px; flex-wrap: wrap; }
+  .pill {
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+  }
+  .pill-pos { background: rgba(167,139,250,.2); color: #a78bfa; }
+  .pill-pow { background: rgba(232,160,32,.2); color: var(--accent); }
+  .pill-lo  { background: rgba(61,220,132,.2); color: var(--hitter); }
+  .pill-bat { background: rgba(74,158,255,.2); color: var(--pitcher); }
+  .pill-pen { background: rgba(255,71,87,.2); color: var(--danger); }
+  .pill-sp  { background: rgba(61,220,132,.15); color: var(--hitter); }
+  .pill-rp  { background: rgba(255,71,87,.15); color: var(--danger); }
 
-    .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.25rem; }
-    .week-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; }
+  /* grade mini */
+  .grade { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text2); }
+  .grade-hi { color: var(--accent3); }
+  .grade-lo { color: var(--danger); }
 
-    .ex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.25rem; }
-    @media (max-width: 500px) { .ex-grid { grid-template-columns: 1fr; } }
-    .ex-card { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 0.75rem 1rem; }
-    .ex-name { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
-    .ex-detail { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+  /* empty state */
+  .empty-state {
+    text-align: center;
+    padding: 80px 24px;
+    color: var(--text3);
+  }
+  .empty-state .big { font-family: 'Bebas Neue', sans-serif; font-size: 64px; letter-spacing: 2px; color: var(--border); }
 
-    .slider-row { margin-bottom: 1.25rem; }
-    .slider-top { display: flex; justify-content: space-between; margin-bottom: 6px; }
-    .slider-label { font-size: 13px; color: var(--text-secondary); }
-    .slider-val { font-size: 13px; font-weight: 500; }
-    input[type=range] { width: 100%; accent-color: var(--text); }
+  /* spinner */
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(0,0,0,.3);
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-    .metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 1rem; }
-    @media (max-width: 500px) { .metric-grid { grid-template-columns: 1fr 1fr; } }
-    .metric { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 0.875rem 1rem; }
-    .metric-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
-    .metric-value { font-size: 22px; font-weight: 500; }
-    .metric-sub { font-size: 11px; color: var(--text-secondary); margin-top: 3px; }
-
-    .meal-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 0.875rem; }
-    .meal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 8px; }
-    .meal-name { font-size: 14px; font-weight: 500; }
-    .meal-macros { display: flex; gap: 8px; flex-wrap: wrap; }
-    .pill { font-size: 11px; padding: 2px 8px; border-radius: 20px; }
-    .pill-cal { background: var(--purple-bg); color: var(--purple-text); }
-    .pill-prot { background: var(--green-bg); color: var(--green-text); }
-    .pill-new { background: #9FE1CB; color: #085041; font-weight: 500; }
-    .food-row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
-    .food-row:last-child { border-bottom: none; }
-    .food-name { color: var(--text-secondary); }
-    .food-detail { font-size: 12px; }
-    .food-row.orgain { background: var(--green-bg); margin: 0 -1.25rem; padding: 7px 1.25rem; }
-    .food-row.orgain .food-name { color: var(--green-text); font-weight: 500; }
-    .food-row.orgain .food-detail { color: var(--green-text); }
-
-    .total-bar { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 0.875rem 1rem; display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; }
-    .total-label { font-size: 13px; font-weight: 500; }
-    .total-nums { display: flex; gap: 12px; font-size: 13px; color: var(--text-secondary); }
-
-    .note { font-size: 12px; color: var(--text-secondary); background: var(--bg-secondary); border-radius: var(--radius-md); padding: 0.875rem 1rem; margin-top: 0.875rem; line-height: 1.6; }
-    .tip-row { padding: 10px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
-    .tip-row:last-child { border-bottom: none; }
-    .tip-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
-    .orgain-tip { font-size: 12px; color: var(--green-text); background: var(--green-bg); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1rem; line-height: 1.6; }
-  </style>
+  /* tooltip */
+  [title] { cursor: help; }
+</style>
 </head>
 <body>
 
 <header>
-  <div>
-    <h1>Fitness Tracker</h1>
-    <p>Personal health &amp; fitness plan — updated April 2026</p>
+  <div class="logo">MLBC <span>Prospect Ranker</span></div>
+  <div class="header-stats" id="headerStats" style="display:none">
+    <div>Prospects: <strong id="statTotal">—</strong></div>
+    <div>Hitters: <strong id="statHitters">—</strong></div>
+    <div>Pitchers: <strong id="statPitchers">—</strong></div>
+    <div>SP-eligible: <strong id="statSP">—</strong></div>
   </div>
 </header>
 
-<nav>
-  <button class="nav-tab active" onclick="showSection('schedule')">Schedule</button>
-  <button class="nav-tab" onclick="showSection('exercises')">Exercises</button>
-  <button class="nav-tab" onclick="showSection('nutrition')">Nutrition</button>
-  <button class="nav-tab" onclick="showSection('meals')">Meal Plan</button>
-</nav>
+<!-- UPLOAD SECTION -->
+<div class="upload-zone" id="uploadZone">
+  <div class="upload-title">PROSPECT<br><span>RANKING ENGINE</span></div>
+  <div class="upload-sub">Upload your MLBC league files to generate prospect rankings based on grades, position value, and sim mechanics.</div>
 
-<main>
-
-  <!-- SCHEDULE -->
-  <div id="schedule" class="section active">
-    <div class="card">
-      <div class="legend">
-        <span class="badge badge-lift">Lifting</span>
-        <span class="badge badge-pilates">Pilates</span>
-        <span class="badge badge-walk">Walk</span>
-        <span class="badge badge-peloton">Peloton</span>
-        <span class="badge badge-rest">Rest</span>
-      </div>
-      <div class="week-label">Weekly plan</div>
-      <div class="day-row"><div class="day-name">Monday</div><div class="day-detail"><span class="badge badge-walk">Walk</span><span class="badge badge-lift">Lifting A</span> Commute walk + 30 min lifting — goblet squat, RDL, push-up</div></div>
-      <div class="day-row"><div class="day-name">Tuesday</div><div class="day-detail"><span class="badge badge-walk">Walk</span><span class="badge badge-peloton">Peloton</span> Commute walk + 30 min power zone ride — Zone 2/3 endurance</div></div>
-      <div class="day-row"><div class="day-name">Wednesday</div><div class="day-detail"><span class="badge badge-pilates">Pilates</span> Regular class — active recovery</div></div>
-      <div class="day-row"><div class="day-name">Thursday</div><div class="day-detail"><span class="badge badge-walk">Walk</span><span class="badge badge-lift">Lifting B</span> Commute walk + 30 min lifting — glute bridge, row, core</div></div>
-      <div class="day-row"><div class="day-name">Friday</div><div class="day-detail"><span class="badge badge-pilates">Pilates</span><span class="badge badge-peloton">Peloton</span> Pilates class + optional 20 min Zone 2 ride if energy allows</div></div>
-      <div class="day-row"><div class="day-name">Saturday</div><div class="day-detail"><span class="badge badge-rest">Rest</span> Full rest or leisure walk</div></div>
-      <div class="day-row"><div class="day-name">Sunday</div><div class="day-detail"><span class="badge badge-rest">Rest</span> Full rest — or swap with Friday Peloton if needed</div></div>
+  <div class="upload-grid">
+    <div class="upload-card" id="rosterCard">
+      <input type="file" id="rosterFile" accept=".csv">
+      <div class="upload-icon">📋</div>
+      <div class="upload-label">League Roster</div>
+      <div class="upload-hint">League_Roster_XXXX.csv</div>
+      <div class="upload-status" id="rosterStatus"></div>
     </div>
-    <div class="card">
-      <div class="week-label">Weeks 5–8 progression</div>
-      <div class="day-row"><div class="day-name">Lifting</div><div class="day-detail">Add 1 set per exercise (2 → 3 sets). Increase weight by 5 lbs when last 2 reps feel easy.</div></div>
-      <div class="day-row"><div class="day-name">Walking</div><div class="day-detail">Extend one walk to 1.5–2 miles for added calorie burn.</div></div>
-      <div class="day-row"><div class="day-name">Peloton</div><div class="day-detail">Gradually extend Tuesday ride to 45 min. Explore Power Zone Max rides for Zone 4/5 intervals.</div></div>
+    <div class="upload-card" id="proCard">
+      <input type="file" id="proFile" accept=".csv">
+      <div class="upload-icon">📅</div>
+      <div class="upload-label">Pro Years Report</div>
+      <div class="upload-hint">Pro_Years_Report_XXXX.csv</div>
+      <div class="upload-status" id="proStatus"></div>
     </div>
   </div>
 
-  <!-- EXERCISES -->
-  <div id="exercises" class="section">
-    <div class="card">
-      <h2>Workout A — lower body + push</h2>
-      <div class="ex-grid">
-        <div class="ex-card"><div class="ex-name">Goblet squat</div><div class="ex-detail">2 sets × 10–12 reps<br>Hold 1 dumbbell at chest. Squat deep, chest tall.</div></div>
-        <div class="ex-card"><div class="ex-name">Romanian deadlift</div><div class="ex-detail">2 sets × 10–12 reps<br>Hinge at hips, soft knees. Feel the hamstring stretch.</div></div>
-        <div class="ex-card"><div class="ex-name">Push-up variation</div><div class="ex-detail">2 sets × 8–12 reps<br>Incline (hands on bench) to start. Go to floor when ready.</div></div>
+  <button class="run-btn" id="runBtn" disabled onclick="runModel()">
+    GENERATE RANKINGS
+  </button>
+</div>
+
+<!-- RESULTS SECTION -->
+<div id="resultsSection" style="display:none">
+  <div class="controls">
+    <div class="filter-group">
+      <span class="filter-label">Type</span>
+      <div class="btn-group">
+        <button class="btn-toggle active" id="typeAll"    onclick="setTypeFilter('all')">ALL</button>
+        <button class="btn-toggle" id="typeHitter" onclick="setTypeFilter('H')">HITTERS</button>
+        <button class="btn-toggle" id="typePitcher" onclick="setTypeFilter('P')">PITCHERS</button>
       </div>
     </div>
-    <div class="card">
-      <h2>Workout B — upper body + glutes</h2>
-      <div class="ex-grid">
-        <div class="ex-card"><div class="ex-name">Glute bridge</div><div class="ex-detail">2 sets × 12–15 reps<br>Drive hips up, squeeze at top for 2 sec. Add dumbbell later.</div></div>
-        <div class="ex-card"><div class="ex-name">Dumbbell row</div><div class="ex-detail">2 sets × 10–12 reps<br>Brace on bench, pull elbow to hip. Both sides.</div></div>
-        <div class="ex-card"><div class="ex-name">Dead bug</div><div class="ex-detail">2 sets × 8 reps per side<br>Complements Pilates core work perfectly.</div></div>
-        <div class="ex-card"><div class="ex-name">Banded clamshell</div><div class="ex-detail">2 sets × 15 reps<br>Hip health and knee protection. Great warm-up too.</div></div>
-      </div>
-      <div class="note">Rest 60–90 sec between sets. Total time ~30 min. Add 5 lbs when the last 2 reps feel easy, not just fine.</div>
+    <div class="filter-group">
+      <span class="filter-label">Level</span>
+      <select id="levelFilter" onchange="applyFilters()">
+        <option value="all">All Levels</option>
+        <option value="AAA">AAA</option>
+        <option value="AA">AA</option>
+        <option value="A">A</option>
+        <option value="IA">IA</option>
+      </select>
     </div>
-    <div class="card">
-      <h2>Peloton rides</h2>
-      <div class="ex-card" style="margin-bottom:10px;">
-        <div class="ex-name">Tuesday — Power Zone Endurance (30 min)</div>
-        <div class="ex-detail">Stay in Zone 2 the whole ride. Matt Wilpers and Christine D'Ercole are the best PZ instructors. Filter by "Power Zone Endurance" in the app. Fat-burning session.</div>
-      </div>
-      <div class="ex-card">
-        <div class="ex-name">Friday — Power Zone (20–30 min)</div>
-        <div class="ex-detail">Standard Power Zone ride — dips into Zone 3/4 briefly. Fine after Pilates since it's short. Builds aerobic capacity without wrecking weekend recovery.</div>
-      </div>
+    <div class="filter-group">
+      <span class="filter-label">Team</span>
+      <select id="teamFilter" onchange="applyFilters()">
+        <option value="all">All Teams</option>
+      </select>
     </div>
+    <div class="filter-group">
+      <span class="filter-label">Pos</span>
+      <select id="posFilter" onchange="applyFilters()">
+        <option value="all">All</option>
+        <option value="P">P</option>
+        <option value="C">C</option>
+        <option value="1B">1B</option>
+        <option value="2B">2B</option>
+        <option value="3B">3B</option>
+        <option value="SS">SS</option>
+        <option value="LF">LF</option>
+        <option value="CF">CF</option>
+        <option value="RF">RF</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <input type="text" id="searchBox" placeholder="Search name..." oninput="applyFilters()" style="width:160px">
+    </div>
+    <button class="export-btn" onclick="exportCSV()">⬇ EXPORT CSV</button>
   </div>
 
-  <!-- NUTRITION CALCULATOR -->
-  <div id="nutrition" class="section">
-    <div class="card">
-      <h2>Calorie deficit calculator</h2>
-      <p style="font-size:13px; color:var(--text-secondary); margin-bottom:1.25rem; line-height:1.5;">Adjust the sliders to estimate your targets. Starting points — real needs vary based on activity, hormones, and metabolism.</p>
-
-      <div class="slider-row">
-        <div class="slider-top"><span class="slider-label">Current weight</span><span class="slider-val" id="w-out">240 lbs</span></div>
-        <input type="range" min="150" max="350" value="240" step="5" id="w-sl" oninput="calc()" />
-      </div>
-      <div class="slider-row">
-        <div class="slider-top"><span class="slider-label">Goal weight</span><span class="slider-val" id="g-out">200 lbs</span></div>
-        <input type="range" min="120" max="300" value="200" step="5" id="g-sl" oninput="calc()" />
-      </div>
-      <div class="slider-row">
-        <div class="slider-top"><span class="slider-label">Age</span><span class="slider-val" id="a-out">44</span></div>
-        <input type="range" min="25" max="70" value="44" step="1" id="a-sl" oninput="calc()" />
-      </div>
-      <div class="slider-row" style="margin-bottom:0;">
-        <div class="slider-top"><span class="slider-label">Deficit level</span><span class="slider-val" id="d-out">Moderate (500 cal)</span></div>
-        <input type="range" min="1" max="3" value="2" step="1" id="d-sl" oninput="calc()" />
-      </div>
-    </div>
-
-    <div class="metric-grid">
-      <div class="metric"><div class="metric-label">Daily calories</div><div class="metric-value" id="m-cal">—</div><div class="metric-sub" id="m-tdee">—</div></div>
-      <div class="metric"><div class="metric-label">Daily protein</div><div class="metric-value" id="m-prot">—</div><div class="metric-sub">target grams</div></div>
-      <div class="metric"><div class="metric-label">Est. timeline</div><div class="metric-value" id="m-time">—</div><div class="metric-sub" id="m-pace">—</div></div>
-    </div>
-
-    <div class="card">
-      <h2>Nutrition tips</h2>
-      <div class="tip-row"><div class="tip-title">Protein first at every meal</div>Chicken, fish, eggs, Greek yogurt, cottage cheese, legumes. Protein keeps you full and protects the muscle you're building.</div>
-      <div class="tip-row"><div class="tip-title">Don't slash calories too hard</div>Going below 1,600–1,700 cal backfires — you lose muscle, feel terrible, and stall. Moderate deficit wins long-term.</div>
-      <div class="tip-row"><div class="tip-title">Watch liquid calories</div>Lattes, juice, and dressings are the biggest hidden sources. Swapping these alone can create a meaningful deficit.</div>
-      <div class="tip-row"><div class="tip-title">Track for 2–3 weeks only</div>Just long enough to calibrate your sense of portions — then you'll know intuitively what a reasonable day looks like.</div>
+  <div class="table-wrap">
+    <table id="rankTable">
+      <thead>
+        <tr>
+          <th onclick="sortBy('rank')">#<span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('name')">NAME<span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('type')">TYPE<span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('pos')">POS<span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('age')">AGE<span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('team')">TEAM<span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('level')">LVL<span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('overall')" class="sorted">OVERALL<span class="sort-arrow">↓</span></th>
+          <th onclick="sortBy('hit')">HIT<span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('stuff')">STUFF<span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('fld')">FLD<span class="sort-arrow">↕</span></th>
+          <th>GRADES</th>
+          <th>BONUSES</th>
+          <th>DETAILS</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="empty-state" id="emptyState" style="display:none">
+      <div class="big">0</div>
+      <div>No prospects match your filters</div>
     </div>
   </div>
-
-  <!-- MEAL PLAN -->
-  <div id="meals" class="section">
-    <div class="orgain-tip">Orgain Organic Protein powder (whey): ~21g protein, ~150 cal per scoop. Stir into Greek yogurt at breakfast — easiest protein boost you can make.</div>
-
-    <div class="meal-card">
-      <div class="meal-header">
-        <div class="meal-name">Breakfast</div>
-        <div class="meal-macros"><span class="pill pill-cal">~570 cal</span><span class="pill pill-prot">63g protein</span><span class="pill pill-new">Orgain included</span></div>
-      </div>
-      <div class="food-row"><span class="food-name">Greek yogurt (plain, 2%)</span><span class="food-detail">1 cup — 20g protein</span></div>
-      <div class="food-row orgain"><span class="food-name">Orgain protein powder (1 scoop)</span><span class="food-detail">stirred into yogurt — 21g protein</span></div>
-      <div class="food-row"><span class="food-name">Eggs, scrambled</span><span class="food-detail">2 whole eggs — 12g protein</span></div>
-      <div class="food-row"><span class="food-name">Berries (frozen is fine)</span><span class="food-detail">½ cup — thaw overnight in yogurt</span></div>
-      <div class="food-row"><span class="food-name">Coffee</span><span class="food-detail">black or small splash of milk</span></div>
-    </div>
-
-    <div class="meal-card">
-      <div class="meal-header">
-        <div class="meal-name">Lunch</div>
-        <div class="meal-macros"><span class="pill pill-cal">~520 cal</span><span class="pill pill-prot">48g protein</span></div>
-      </div>
-      <div class="food-row"><span class="food-name">Grilled chicken breast</span><span class="food-detail">5 oz — 43g protein</span></div>
-      <div class="food-row"><span class="food-name">Mixed greens + cucumber + tomato</span><span class="food-detail">big bowl</span></div>
-      <div class="food-row"><span class="food-name">Olive oil + lemon dressing</span><span class="food-detail">1 tbsp oil</span></div>
-      <div class="food-row"><span class="food-name">Chickpeas</span><span class="food-detail">½ cup — extra fiber + 5g protein</span></div>
-    </div>
-
-    <div class="meal-card">
-      <div class="meal-header">
-        <div class="meal-name">Snack</div>
-        <div class="meal-macros"><span class="pill pill-cal">~120 cal</span><span class="pill pill-prot">14g protein</span></div>
-      </div>
-      <div class="food-row"><span class="food-name">String cheese (1 stick)</span><span class="food-detail">~8g protein, easy grab-and-go</span></div>
-      <div class="food-row"><span class="food-name">Apple or celery sticks</span><span class="food-detail">fiber, keeps you full</span></div>
-    </div>
-
-    <div class="meal-card">
-      <div class="meal-header">
-        <div class="meal-name">Dinner</div>
-        <div class="meal-macros"><span class="pill pill-cal">~580 cal</span><span class="pill pill-prot">45g protein</span></div>
-      </div>
-      <div class="food-row"><span class="food-name">Salmon fillet</span><span class="food-detail">5 oz — 35g protein + omega-3s</span></div>
-      <div class="food-row"><span class="food-name">Roasted broccoli + zucchini</span><span class="food-detail">2 cups — fills the plate</span></div>
-      <div class="food-row"><span class="food-name">Sweet potato (small)</span><span class="food-detail">½ cup — quality carbs for workouts</span></div>
-      <div class="food-row"><span class="food-name">Olive oil for roasting</span><span class="food-detail">1 tbsp</span></div>
-    </div>
-
-    <div class="total-bar">
-      <span class="total-label">Day total</span>
-      <div class="total-nums"><span>~1,900 cal</span><span>~170g protein</span></div>
-    </div>
-
-    <div class="note">On lifting days, have your snack within an hour after your workout. Swap salmon for chicken thighs, tuna, or shrimp on other nights. Prep yogurt + Orgain the night before — faster than toasting waffles.</div>
-  </div>
-
-</main>
+</div>
 
 <script>
-function showSection(id) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  event.target.classList.add('active');
+// ═══════════════════════════════════════════════════════════════
+// DATA STATE
+// ═══════════════════════════════════════════════════════════════
+let rosterData = null, proData = null;
+let allRanked = [], filtered = [], sortCol = 'overall', sortDir = -1;
+
+// ═══════════════════════════════════════════════════════════════
+// FILE UPLOAD
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('rosterFile').addEventListener('change', function(e) {
+  const f = e.target.files[0]; if (!f) return;
+  Papa.parse(f, { header: true, skipEmptyLines: true, complete(r) {
+    rosterData = r.data;
+    document.getElementById('rosterStatus').textContent = `✓ ${r.data.length} players loaded`;
+    document.getElementById('rosterCard').classList.add('loaded');
+    checkReady();
+  }});
+});
+document.getElementById('proFile').addEventListener('change', function(e) {
+  const f = e.target.files[0]; if (!f) return;
+  Papa.parse(f, { header: true, skipEmptyLines: true, complete(r) {
+    proData = r.data;
+    document.getElementById('proStatus').textContent = `✓ ${r.data.length} records loaded`;
+    document.getElementById('proCard').classList.add('loaded');
+    checkReady();
+  }});
+});
+function checkReady() {
+  document.getElementById('runBtn').disabled = !(rosterData && proData);
 }
 
-function calc() {
-  const w = parseInt(document.getElementById('w-sl').value);
-  const g = parseInt(document.getElementById('g-sl').value);
-  const a = parseInt(document.getElementById('a-sl').value);
-  const d = parseInt(document.getElementById('d-sl').value);
-  document.getElementById('w-out').textContent = w + ' lbs';
-  document.getElementById('g-out').textContent = g + ' lbs';
-  document.getElementById('a-out').textContent = a;
-  const deficitMap = { 1: [250, 'Gentle (250 cal)', 0.5], 2: [500, 'Moderate (500 cal)', 1], 3: [750, 'Aggressive (750 cal)', 1.5] };
-  const [defCal, defLabel, lbsPerWeek] = deficitMap[d];
-  document.getElementById('d-out').textContent = defLabel;
-  const wKg = w * 0.453592;
-  const bmr = Math.round(10 * wKg + 6.25 * 170 - 5 * a - 161);
-  const tdee = Math.round(bmr * 1.45);
-  const calories = Math.max(1600, tdee - defCal);
-  const protein = Math.round(g * 0.9);
-  const lbsToLose = Math.max(0, w - g);
-  const months = (lbsToLose / (lbsPerWeek * 4.3)).toFixed(1);
-  document.getElementById('m-cal').textContent = calories.toLocaleString();
-  document.getElementById('m-tdee').textContent = 'maintenance: ~' + tdee.toLocaleString();
-  document.getElementById('m-prot').textContent = protein + 'g';
-  document.getElementById('m-time').textContent = lbsToLose > 0 ? months + ' mo' : '—';
-  document.getElementById('m-pace').textContent = lbsToLose > 0 ? lbsPerWeek + ' lb/week pace' : 'at goal!';
+// ═══════════════════════════════════════════════════════════════
+// GRADE HELPER
+// ═══════════════════════════════════════════════════════════════
+function gradeVal(val, bins, grades) {
+  if (val === null || val === undefined || isNaN(val)) return null;
+  val = +val;
+  for (let i = 0; i < bins.length - 1; i++) {
+    if (val > bins[i] && val <= bins[i+1]) return grades[i];
+  }
+  if (val <= bins[0]) return grades[0];
+  return grades[grades.length - 1];
 }
-calc();
+
+// ═══════════════════════════════════════════════════════════════
+// GRADE BINS — identical to Python model
+// ═══════════════════════════════════════════════════════════════
+const OBP_BINS  = [0.19,0.245,0.265,0.285,0.300,0.315,0.330,0.345,0.360,0.375,0.393,0.410,0.50];
+const OBP_GRD   = [20,25,30,35,40,45,50,55,60,65,70,75];
+const XBH_BINS  = [0,40,62,78,95,107,120,139,159,177,196,225,400];
+const XBH_GRD   = [20,25,30,35,40,45,50,55,60,65,70,75];
+const KBB_BINS  = [0.0,0.45,0.60,0.75,0.90,1.05,1.25,1.50,1.80,2.15,2.60,3.15,9.99];
+const KBB_GRD   = [80,75,70,65,60,55,50,45,40,35,30,25];
+const GB_BINS   = [0.20,0.30,0.35,0.39,0.43,0.47,0.51,0.55,0.59,0.63,0.67,0.70,0.80];
+const GB_GRD    = [80,75,70,65,60,55,50,45,40,35,30,25];
+const PULL_BINS = [0.0,0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,1.0];
+const PULL_GRD  = [20,25,30,35,40,45,50,55,60,65,70,75];
+const RUN_BINS  = [0.9,1.9,2.4,2.9,3.4,3.9,4.4,4.9,5.4,5.9,6.4,7.0,9.8];
+const RUN_GRD   = [20,25,30,35,40,45,50,55,60,65,70,75];
+const ARM_BINS  = [1.4,1.9,2.4,2.9,3.4,3.9,4.4,4.9,5.4,5.9,6.4,7.2,9.9];
+const ARM_GRD   = [20,25,30,35,40,45,50,55,60,65,70,75];
+const FLD_BINS  = [0.930,0.950,0.962,0.970,0.976,0.981,0.985,0.988,0.991,0.993,0.995,0.997,1.001];
+const FLD_GRD   = [20,25,30,35,40,45,50,55,60,65,70,75];
+
+const WOPS_BINS = [0.50,0.575,0.600,0.625,0.650,0.675,0.700,0.730,0.765,0.810,0.870,1.00];
+const WOPS_GRD  = [80,75,70,65,60,55,50,45,40,35,30];
+const BOPS_BINS = [0.45,0.550,0.575,0.600,0.625,0.650,0.680,0.715,0.760,0.820,0.880,1.00];
+const BOPS_GRD  = [80,75,70,65,60,55,50,45,40,35,30];
+const TOP2_BINS = [0.50,0.560,0.585,0.610,0.635,0.660,0.685,0.720,0.760,0.810,0.870,1.00];
+const TOP2_GRD  = [80,75,70,65,60,55,50,45,40,35,30];
+const KBB_P_BINS= [0.0,0.9,1.2,1.5,1.8,2.1,2.4,2.8,3.2,3.7,4.3,10.0];
+const KBB_P_GRD = [20,25,30,35,40,45,50,55,60,65,70];
+const PSO_BINS  = [0,30,45,60,75,90,105,125,150,175,210,300];
+const PSO_GRD   = [20,25,30,35,40,45,50,55,60,65,70];
+
+const POS_PREMIUM = {C:3.0,SS:2.0,CF:1.5,'2B':0.5,'3B':0.5,RF:0,LF:0,'1B':-0.5};
+
+const POS_FLD = {
+  '1B':{fld:.55,arm:.10,run:.10,rng:'IF',rw:.25},
+  '2B':{fld:.20,arm:.25,run:.15,rng:'IF',rw:.40},
+  '3B':{fld:.15,arm:.45,run:.10,rng:'IF',rw:.30},
+   SS :{fld:.15,arm:.25,run:.20,rng:'IF',rw:.40},
+   C  :{fld:.25,arm:.65,run:.05,rng:'IF',rw:.05},
+   LF :{fld:.15,arm:.15,run:.30,rng:'OF',rw:.40},
+   CF :{fld:.10,arm:.15,run:.35,rng:'OF',rw:.40},
+   RF :{fld:.15,arm:.45,run:.10,rng:'OF',rw:.30},
+};
+
+// Per-position range z-score state (computed once)
+let posRangeMeans = {}, posRangeStds = {};
+
+function normalCDF(x) {
+  const t = 1/(1+.2316419*Math.abs(x));
+  const d = .3989423*Math.exp(-x*x/2);
+  let p = d*t*(.3193815+t*(-.3565638+t*(1.7814779+t*(-1.8212560+t*1.3302744))));
+  return x > 0 ? 1-p : p;
+}
+
+function posRangeNorm(val, pos, stat) {
+  const key = pos+'_'+stat;
+  if (!posRangeMeans[key]) return 50;
+  const mu = posRangeMeans[key], sig = posRangeStds[key];
+  if (!sig) return 50;
+  const z = (val - mu) / sig;
+  return normalCDF(z) * 75 + 20;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN MODEL
+// ═══════════════════════════════════════════════════════════════
+function runModel() {
+  const btn = document.getElementById('runBtn');
+  btn.innerHTML = '<span class="spinner"></span> CALCULATING...';
+  btn.disabled = true;
+
+  setTimeout(() => {
+    try {
+      // Merge Pro Years
+      const proMap = {};
+      proData.forEach(r => {
+        const key = (r.Firstname||r.First||'').trim()+'|'+(r.Lastname||r.Last||'').trim();
+        proMap[key] = +(r['Pro Years']||0);
+      });
+
+      // Filter prospects: Pro Years == 0, not ML
+      const prospects = rosterData.filter(r => {
+        const key = (r.First||'').trim()+'|'+(r.Last||'').trim();
+        const py = proMap[key] ?? 0;
+        return py === 0 && r.Level !== 'ML' && r.Level !== '';
+      });
+
+      // Compute position range means/stds for hitters
+      const hitters = prospects.filter(r => r.Pos !== 'P');
+      const ifByPos = {}, ofByPos = {};
+      hitters.forEach(r => {
+        if (!ifByPos[r.Pos]) ifByPos[r.Pos] = [];
+        if (!ofByPos[r.Pos]) ofByPos[r.Pos] = [];
+        ifByPos[r.Pos].push(+r.IF_Rng||0);
+        ofByPos[r.Pos].push(+r.OF_Rng||0);
+      });
+      Object.keys(ifByPos).forEach(pos => {
+        const vals = ifByPos[pos];
+        const mu = vals.reduce((a,b)=>a+b,0)/vals.length;
+        const sig = Math.sqrt(vals.reduce((a,b)=>a+(b-mu)**2,0)/vals.length)||1;
+        posRangeMeans[pos+'_IF'] = mu; posRangeStds[pos+'_IF'] = sig;
+      });
+      Object.keys(ofByPos).forEach(pos => {
+        const vals = ofByPos[pos];
+        const mu = vals.reduce((a,b)=>a+b,0)/vals.length;
+        const sig = Math.sqrt(vals.reduce((a,b)=>a+(b-mu)**2,0)/vals.length)||1;
+        posRangeMeans[pos+'_OF'] = mu; posRangeStds[pos+'_OF'] = sig;
+      });
+
+      // Score all prospects
+      const ranked = prospects.map(r => scoreProspect(r)).filter(Boolean);
+      ranked.sort((a,b) => b.overall - a.overall);
+      ranked.forEach((r,i) => r.rank = i+1);
+      allRanked = ranked;
+
+      // Populate team filter
+      const teams = [...new Set(ranked.map(r=>r.team))].sort();
+      const tf = document.getElementById('teamFilter');
+      tf.innerHTML = '<option value="all">All Teams</option>';
+      teams.forEach(t => { const o = document.createElement('option'); o.value=t; o.textContent=t; tf.appendChild(o); });
+
+      // Update header stats
+      document.getElementById('statTotal').textContent   = ranked.length;
+      document.getElementById('statHitters').textContent = ranked.filter(r=>r.type==='H').length;
+      document.getElementById('statPitchers').textContent= ranked.filter(r=>r.type==='P').length;
+      document.getElementById('statSP').textContent      = ranked.filter(r=>r.isSP).length;
+      document.getElementById('headerStats').style.display = 'flex';
+
+      // Show results
+      document.getElementById('uploadZone').style.display = 'none';
+      document.getElementById('resultsSection').style.display = 'block';
+      applyFilters();
+
+    } catch(e) {
+      alert('Error running model: '+e.message+'\n\n'+e.stack);
+      btn.innerHTML = 'GENERATE RANKINGS';
+      btn.disabled = false;
+    }
+  }, 50);
+}
+
+function scoreProspect(r) {
+  try {
+    const pos  = (r.Pos||'').trim();
+    const bat  = (r.Bat||'').trim();
+    const throw_ = (r.Throw||'').trim();
+
+    if (pos === 'P') return scorePitcher(r);
+    else             return scoreHitter(r);
+  } catch(e) { return null; }
+}
+
+function scoreHitter(r) {
+  const pos   = (r.Pos||'').trim();
+  const bat   = (r.Bat||'').trim();
+  const throw_= (r.Throw||'').trim();
+
+  const obp  = +(r.vL_OBP||0)*.25 + +(r.vR_OBP||0)*.75;
+  const slg  = +(r.vL_SLG||0)*.25 + +(r.vR_SLG||0)*.75;
+  const ops  = obp + slg;
+  const xbh  = +(r.B_HR||0)*4 + +(r.B_B3||0)*3 + +(r.B_B2||0)*2;
+  const kbb  = +(r.B_BB||0) > 0 ? +(r.B_SO||0) / +(r.B_BB||0) : 9.99;
+  const bH   = +(r.B_H||0);
+
+  const obpG  = gradeVal(obp,  OBP_BINS,  OBP_GRD);
+  const xbhG  = gradeVal(xbh,  XBH_BINS,  XBH_GRD);
+  const kbbG  = gradeVal(kbb,  KBB_BINS,  KBB_GRD);
+  const gbG   = gradeVal(+(r.B_GB||0), GB_BINS, GB_GRD);
+  const pullG = gradeVal(+(r.Pull||0), PULL_BINS, PULL_GRD);
+  const runG  = gradeVal(+(r.Run||0),  RUN_BINS,  RUN_GRD);
+  const armG  = gradeVal(+(r.Arm||0),  ARM_BINS,  ARM_GRD);
+  const fldG  = gradeVal(+(r.Fld||0),  FLD_BINS,  FLD_GRD);
+
+  const hit = (obpG||0)*.35 + (xbhG||0)*.33 + (kbbG||0)*.12 + (gbG||0)*.12 + (pullG||0)*.08;
+
+  // FLD
+  const isLHthrowIF = throw_==='L' && ['2B','3B','SS'].includes(pos);
+  let fld;
+  if (isLHthrowIF) {
+    const ofNorm = posRangeNorm(+(r.OF_Rng||0), pos, 'OF');
+    fld = (fldG||0)*.40 + ofNorm*.30 + (armG||0)*.20 + (runG||0)*.10;
+  } else {
+    const w = POS_FLD[pos] || POS_FLD['LF'];
+    const rngNorm = posRangeNorm(+(r[w.rng==='IF'?'IF_Rng':'OF_Rng']||0), pos, w.rng);
+    fld = (fldG||0)*w.fld + rngNorm*w.rw + (armG||0)*w.arm + (runG||0)*w.run;
+  }
+
+  const posBonus = POS_PREMIUM[pos] ?? 0;
+  const powBonus = ops>=1.050?3.0:ops>=1.000?1.5:ops>=0.950?0.5:0;
+  const loBonus  = (obp>=0.390&&+(r.Run||0)>=5.5)?2.0:(obp>=0.380&&+(r.Run||0)>=5.0)?1.0:0;
+  const batBonus = bat==='S'?1.0:bat==='L'?0.5:0;
+  const htPen    = bH>=170?0:bH>=155?-1:bH>=140?-2:-4;
+
+  const overall = hit*.90 + fld*.10 + posBonus + powBonus + loBonus + batBonus + htPen;
+
+  return {
+    rank:0, name:`${r.Last}, ${r.First}`, first:r.First, last:r.Last,
+    type:'H', pos, bat, throw:throw_, team:r.Team, level:r.Level,
+    age:+r.Age||0, isSP:false,
+    overall, hit, fld, stuff:null,
+    obpG, xbhG, kbbG, gbG, pullG, runG, armG, fldG,
+    obp, ops, hr:+r.B_HR||0, bb:+r.B_BB||0, so:+r.B_SO||0, run:+r.Run||0,
+    posBonus, powBonus, loBonus, batBonus, htPen,
+    wops:null, bestOps:null, end:null
+  };
+}
+
+function scorePitcher(r) {
+  // Batter handedness from league (LHP faces 76.4% RHH in A-ball)
+  const throw_ = (r.Throw||'').trim();
+  const wR = throw_==='L' ? 0.764 : 0.647;
+  const wL = throw_==='L' ? 0.236 : 0.353;
+
+  // Per-pitch metrics
+  let totalQual=0, wOps=0, bestOps=1.5;
+  let pitches=[];
+  for (let i=1; i<=6; i++) {
+    const name= r[`P${i}`];
+    const qual= +(r[`P${i}_Qual`]||0);
+    if (!name || !name.trim() || qual<=0) continue;
+    const opsL= +(r[`P${i}_vL_OBP`]||0) + +(r[`P${i}_vL_SLG`]||0);
+    const opsR= +(r[`P${i}_vR_OBP`]||0) + +(r[`P${i}_vR_SLG`]||0);
+    const opsW= opsL*wL + opsR*wR;
+    wOps += qual*opsW; totalQual += qual;
+    if (opsW < bestOps) bestOps = opsW;
+    pitches.push({qual, opsW, name});
+  }
+  if (totalQual === 0) return null;
+  const wOpsAvg = wOps / totalQual;
+  // Top 2 by usage
+  pitches.sort((a,b)=>b.qual-a.qual);
+  const top2 = pitches.slice(0,2);
+  const t2tot = top2.reduce((s,p)=>s+p.qual,0);
+  const top2W = top2.reduce((s,p)=>s+p.qual*p.opsW,0) / (t2tot||1);
+
+  const kbb  = +(r.P_BB||0)>0 ? +(r.P_SO||0)/+(r.P_BB||0) : 0;
+  const end  = +(r.END||0);
+  const isSP = end >= 5.0;
+
+  const wOpsG = gradeVal(wOpsAvg, WOPS_BINS, WOPS_GRD);
+  const bestG = gradeVal(bestOps,  BOPS_BINS, BOPS_GRD);
+  const top2G = gradeVal(top2W,    TOP2_BINS, TOP2_GRD);
+  const kbbG  = gradeVal(kbb,      KBB_P_BINS,KBB_P_GRD);
+  const psoG  = gradeVal(+(r.P_SO||0), PSO_BINS, PSO_GRD);
+
+  const stuff = (wOpsG||0)*.40 + (top2G||0)*.30 + (bestG||0)*.15 + (kbbG||0)*.10 + (psoG||0)*.05;
+  const endMod = isSP ? 0 : -5;
+  const overall = stuff + endMod;
+
+  return {
+    rank:0, name:`${r.Last}, ${r.First}`, first:r.First, last:r.Last,
+    type:'P', pos:'P', bat:throw_, throw:throw_, team:r.Team, level:r.Level,
+    age:+r.Age||0, isSP,
+    overall, hit:null, fld:null, stuff,
+    obpG:null, xbhG:null, kbbG:null, gbG:null, pullG:null,
+    runG:null, armG:null, fldG:null,
+    obp:null, ops:null, hr:null, bb:null, so:null, run:null,
+    posBonus:null, powBonus:null, loBonus:null, batBonus:null, htPen:null,
+    wops:wOpsAvg, bestOps, top2W, end, kbb,
+    p_so:+(r.P_SO||0), p_bb:+(r.P_BB||0), p_gb:+(r.P_GB||0)
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FILTERS & SORT
+// ═══════════════════════════════════════════════════════════════
+let typeFilter = 'all';
+function setTypeFilter(t) {
+  typeFilter = t;
+  document.getElementById('typeAll').className    = 'btn-toggle' + (t==='all'?' active':'');
+  document.getElementById('typeHitter').className = 'btn-toggle' + (t==='H'?' active-h active':'');
+  document.getElementById('typePitcher').className= 'btn-toggle' + (t==='P'?' active-p active':'');
+  applyFilters();
+}
+
+function applyFilters() {
+  const level  = document.getElementById('levelFilter').value;
+  const team   = document.getElementById('teamFilter').value;
+  const pos    = document.getElementById('posFilter').value;
+  const search = document.getElementById('searchBox').value.toLowerCase();
+
+  filtered = allRanked.filter(r => {
+    if (typeFilter !== 'all' && r.type !== typeFilter) return false;
+    if (level !== 'all' && r.level !== level) return false;
+    if (team  !== 'all' && r.team  !== team)  return false;
+    if (pos   !== 'all' && r.pos   !== pos)   return false;
+    if (search && !r.name.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  // Re-rank within filter
+  filtered.forEach((r,i) => r.filteredRank = i+1);
+  renderTable();
+}
+
+function sortBy(col) {
+  if (sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = -1; }
+  document.querySelectorAll('thead th').forEach(th => th.classList.remove('sorted'));
+  // Update header
+  renderTable();
+}
+
+function renderTable() {
+  const sortFn = {
+    rank:    (a,b) => a.rank - b.rank,
+    name:    (a,b) => a.name.localeCompare(b.name),
+    type:    (a,b) => a.type.localeCompare(b.type),
+    pos:     (a,b) => a.pos.localeCompare(b.pos),
+    age:     (a,b) => a.age - b.age,
+    team:    (a,b) => a.team.localeCompare(b.team),
+    level:   (a,b) => ['AAA','AA','A','IA'].indexOf(a.level) - ['AAA','AA','A','IA'].indexOf(b.level),
+    overall: (a,b) => a.overall - b.overall,
+    hit:     (a,b) => (a.hit||0) - (b.hit||0),
+    stuff:   (a,b) => (a.stuff||0) - (b.stuff||0),
+    fld:     (a,b) => (a.fld||0) - (b.fld||0),
+  }[sortCol] || ((a,b)=>a.overall-b.overall);
+
+  const rows = [...filtered].sort((a,b)=>sortDir*sortFn(a,b));
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+
+  if (rows.length === 0) {
+    tbody.innerHTML=''; empty.style.display='block'; return;
+  }
+  empty.style.display='none';
+
+  tbody.innerHTML = rows.map((r,idx) => {
+    const dispRank = r.rank;
+    const rankBadge = dispRank<=3
+      ? `<span class="rank-badge rank-${dispRank}">${dispRank}</span>`
+      : `<span style="color:var(--text3);font-family:'IBM Plex Mono',monospace;font-size:11px">${dispRank}</span>`;
+
+    const ov = r.overall.toFixed(1);
+    const ovPct = Math.min(100, Math.max(0, (r.overall - 20) / 80 * 100));
+
+    const hitCell = r.type==='H'
+      ? `<div class="score-cell score-hit">
+           <div class="score-bar-wrap"><div class="score-bar" style="width:${Math.min(100,(r.hit-20)/60*100)}%"></div></div>
+           <span class="score-val">${r.hit.toFixed(1)}</span>
+         </div>`
+      : `<span style="color:var(--text3)">—</span>`;
+
+    const stuffCell = r.type==='P'
+      ? `<div class="score-cell score-stuff">
+           <div class="score-bar-wrap"><div class="score-bar" style="width:${Math.min(100,(r.stuff-20)/60*100)}%"></div></div>
+           <span class="score-val">${r.stuff.toFixed(1)}</span>
+         </div>`
+      : `<span style="color:var(--text3)">—</span>`;
+
+    const fldCell = r.type==='H'
+      ? `<div class="score-cell score-fld">
+           <div class="score-bar-wrap"><div class="score-bar" style="width:${Math.min(100,(r.fld-20)/60*100)}%"></div></div>
+           <span class="score-val">${r.fld.toFixed(1)}</span>
+         </div>`
+      : `<span style="color:var(--text3)">—</span>`;
+
+    // Grades
+    let gradesHtml = '';
+    if (r.type==='H') {
+      const g = (v,lo=45,hi=65) => v===null?'—':`<span class="${v>=hi?'grade-hi':v<=lo?'grade-lo':'grade'}">${v}</span>`;
+      gradesHtml = `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)">
+        OBP:${g(r.obpG)} XBH:${g(r.xbhG)} K/BB:${g(r.kbbG,45,65)} FLD:${g(r.fldG)}
+      </span>`;
+    } else {
+      const g = (v,lo=45,hi=65) => v===null?'—':`<span class="${v>=hi?'grade-hi':v<=lo?'grade-lo':'grade'}">${v}</span>`;
+      gradesHtml = `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)">
+        WOPS:${g(gradeVal(r.wops,WOPS_BINS,WOPS_GRD))} KBB:${g(gradeVal(r.kbb,KBB_P_BINS,KBB_P_GRD))} SO:${g(gradeVal(r.p_so,PSO_BINS,PSO_GRD))}
+      </span>`;
+    }
+
+    // Bonuses
+    let bonuses = '<div class="bonus-pills">';
+    if (r.type==='H') {
+      if (r.posBonus>0)  bonuses+=`<span class="pill pill-pos" title="Positional premium">${r.pos}+${r.posBonus}</span>`;
+      if (r.posBonus<0)  bonuses+=`<span class="pill pill-pen" title="Positional penalty">${r.pos}${r.posBonus}</span>`;
+      if (r.powBonus>0)  bonuses+=`<span class="pill pill-pow" title="Power bonus (OPS≥.950)">PWR+${r.powBonus}</span>`;
+      if (r.loBonus>0)   bonuses+=`<span class="pill pill-lo"  title="Leadoff bonus (OBP+Speed)">LO+${r.loBonus}</span>`;
+      if (r.batBonus>0)  bonuses+=`<span class="pill pill-bat" title="Switch/LH bonus">${r.bat}+${r.batBonus}</span>`;
+      if (r.htPen<0)     bonuses+=`<span class="pill pill-pen" title="Hit tool penalty (B_H<170)">HT${r.htPen}</span>`;
+    } else {
+      bonuses += r.isSP
+        ? `<span class="pill pill-sp" title="Starter eligible (END≥5.0)">SP</span>`
+        : `<span class="pill pill-rp" title="Reliever only (END<5.0)">RP-5</span>`;
+    }
+    bonuses += '</div>';
+
+    // Details
+    let details = '';
+    if (r.type==='H') {
+      details = `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)">
+        OPS:${r.ops?.toFixed(3)} HR:${r.hr} BB:${r.bb} K:${r.so}
+      </span>`;
+    } else {
+      details = `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)">
+        WOPS:${r.wops?.toFixed(3)} K/BB:${r.kbb?.toFixed(2)} END:${r.end?.toFixed(2)}
+      </span>`;
+    }
+
+    const lvlClass = `lvl-${r.level}`;
+    const typeClass = `type-${r.type}`;
+
+    return `<tr>
+      <td class="td-rank">${rankBadge}</td>
+      <td class="td-name"><span class="fname">${r.first}</span>${r.last}</td>
+      <td><span class="type-badge ${typeClass}">${r.type==='P'?'PITCHER':'HITTER'}</span></td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-weight:600">${r.pos}</td>
+      <td style="color:var(--text2)">${r.age}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${r.team}</td>
+      <td><span class="lvl-badge ${lvlClass}">${r.level}</span></td>
+      <td>
+        <div class="score-cell score-overall">
+          <div class="score-bar-wrap"><div class="score-bar" style="width:${ovPct}%"></div></div>
+          <span class="score-val">${ov}</span>
+        </div>
+      </td>
+      <td>${hitCell}</td>
+      <td>${stuffCell}</td>
+      <td>${fldCell}</td>
+      <td>${gradesHtml}</td>
+      <td>${bonuses}</td>
+      <td>${details}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════════
+function exportCSV() {
+  const rows = [...filtered].sort((a,b) => b.overall - a.overall);
+  const cols = ['rank','last','first','type','pos','bat','team','level','age',
+                'overall','hit','stuff','fld',
+                'obp','ops','hr','bb','so',
+                'wops','bestOps','end','kbb','p_so','p_gb',
+                'posBonus','powBonus','loBonus','batBonus','htPen',
+                'obpG','xbhG','kbbG','gbG','fldG','runG','armG'];
+  const header = cols.join(',');
+  const body = rows.map(r => cols.map(c => {
+    const v = r[c];
+    return v===null||v===undefined ? '' : typeof v==='number' ? v.toFixed(2) : `"${v}"`;
+  }).join(',')).join('\n');
+  const blob = new Blob([header+'\n'+body], {type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='mlbc_prospect_rankings.csv'; a.click();
+}
 </script>
 </body>
 </html>
