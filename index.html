@@ -29,6 +29,7 @@
     font-family: 'IBM Plex Sans', sans-serif;
     font-size: 14px;
     min-height: 100vh;
+    overflow-x: auto;
   }
 
   /* ── HEADER ── */
@@ -145,6 +146,9 @@
     gap: 12px;
     align-items: center;
     flex-wrap: wrap;
+    position: sticky;
+    top: 64px;
+    z-index: 99;
   }
   .filter-group { display: flex; align-items: center; gap: 8px; }
   .filter-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); }
@@ -191,9 +195,8 @@
   /* ── TABLE ── */
   .table-wrap {
     padding: 0 0 80px;
-    overflow-x: auto;
   }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1200px; }
   thead th {
     background: var(--surface);
     padding: 10px 12px;
@@ -207,8 +210,9 @@
     white-space: nowrap;
     cursor: pointer;
     user-select: none;
-    position: sticky;
-    top: 64px;
+    /* Sticky: sits below header(64px) + controls(~53px) */
+    top: 117px;
+    z-index: 10;
   }
   thead th:hover { color: var(--accent); }
   thead th.sorted { color: var(--accent); }
@@ -284,7 +288,7 @@
   .score-fld .score-bar { background: #a78bfa; }
 
   /* bonus pills */
-  .bonus-pills { display: flex; gap: 3px; flex-wrap: wrap; }
+  .bonus-pills { display: flex; gap: 3px; flex-wrap: wrap; max-width: 140px; overflow: hidden; }
   .pill {
     padding: 1px 5px;
     border-radius: 2px;
