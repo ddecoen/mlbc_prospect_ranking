@@ -38,7 +38,27 @@ The offensive grade is built from five components on a **20–75 scale**, calibr
 | GB% Grade | 12% | `B_GB` | Lower GB% = fly ball tendency = more power output |
 | Pull Grade | 8% | `Pull%` | Pull hitters generate more HR; sim rewards pull power |
 
-**Hit Tool Penalty:** Players with `B_H < 170` receive a contact risk penalty (−1 to −4 points) applied to the final overall score. Below 155 is a significant red flag; below 140 is severe.
+**Hit Tool Floor — Contact Credibility:**
+
+A poor hit tool creates two separate problems, both now modeled explicitly:
+
+**1. Contact-credibility discount on OBP grade.** A player with B_H=155 cannot sustain a .390 OBP regardless of what his edit splits say — the splits assume a level of contact he can't produce. The OBP grade is discounted proportionally:
+
+`OBP_G = OBP_G_raw × min(1.0, B_H / 170)`
+
+So B_H=155 → OBP grade multiplied by 0.912 (9% discount). B_H=140 → 18% discount. B_H=170+ → no discount.
+
+**2. Flat hit tool penalty** applied to the final overall score:
+
+| B_H | Penalty | Notes |
+|-----|---------|-------|
+| ≥ 170 | 0 | No penalty — acceptable contact |
+| ≥ 160 | −1 | Slightly below average |
+| ≥ 150 | −3 | Genuine contact risk |
+| ≥ 140 | −5 | Significant red flag |
+| < 140 | −8 | Cannot profile as a hitter |
+
+The old model used a single -1 penalty for B_H=155, which was far too lenient. A walk-heavy, no-contact player (the "Barry Bonds eye with no contact ability" profile) would score artificially high because the OBP grade trusted edit splits that the hit tool makes impossible to sustain in the sim.
 
 ### FLD Score (10% of overall)
 
