@@ -649,7 +649,7 @@ function scoreHitter(r) {
   const kbb  = +(r.B_BB||0) > 0 ? +(r.B_SO||0) / +(r.B_BB||0) : 9.99;
   const bH   = +(r.B_H||0);
 
-  const obpG  = gradeVal(obp,  OBP_BINS,  OBP_GRD);
+  const obpG_raw = gradeVal(obp,  OBP_BINS,  OBP_GRD);
   const xbhG  = gradeVal(xbh,  XBH_BINS,  XBH_GRD);
   const kbbG  = gradeVal(kbb,  KBB_BINS,  KBB_GRD);
   const gbG   = gradeVal(+(r.B_GB||0), GB_BINS, GB_GRD);
@@ -657,6 +657,12 @@ function scoreHitter(r) {
   const runG  = gradeVal(+(r.Run||0),  RUN_BINS,  RUN_GRD);
   const armG  = gradeVal(+(r.Arm||0),  ARM_BINS,  ARM_GRD);
   const fldG  = gradeVal(+(r.Fld||0),  FLD_BINS,  FLD_GRD);
+
+  // Contact-credibility discount: a player who can't make contact
+  // cannot sustain a high OBP — the edit splits overstate his on-base ability.
+  // B_H=170 = full credit; B_H=155 = 91% credit; B_H=140 = 82% credit; B_H=125 = 74%
+  const contactFactor = bH >= 170 ? 1.0 : Math.min(1.0, bH / 170);
+  const obpG = Math.round((obpG_raw||0) * contactFactor);
 
   const hit = (obpG||0)*.35 + (xbhG||0)*.33 + (kbbG||0)*.12 + (gbG||0)*.12 + (pullG||0)*.08;
 
@@ -676,7 +682,9 @@ function scoreHitter(r) {
   const powBonus = ops>=1.050?3.0:ops>=1.000?1.5:ops>=0.950?0.5:0;
   const loBonus  = (obp>=0.390&&+(r.Run||0)>=5.5)?2.0:(obp>=0.380&&+(r.Run||0)>=5.0)?1.0:0;
   const batBonus = bat==='S'?1.0:bat==='L'?0.5:0;
-  const htPen    = bH>=170?0:bH>=155?-1:bH>=140?-2:-4;
+  // Hit tool floor penalties — steeper than before
+  // B_H=155 is genuinely bad (10th pct); the old -1 was far too lenient
+  const htPen = bH>=170?0 : bH>=160?-1 : bH>=150?-3 : bH>=140?-5 : -8;
 
   const overall = hit*.90 + fld*.10 + posBonus + powBonus + loBonus + batBonus + htPen;
 
@@ -858,7 +866,7 @@ function renderTable() {
       if (r.powBonus>0)  bonuses+=`<span class="pill pill-pow" title="Power bonus (OPS≥.950)">PWR+${r.powBonus}</span>`;
       if (r.loBonus>0)   bonuses+=`<span class="pill pill-lo"  title="Leadoff bonus (OBP+Speed)">LO+${r.loBonus}</span>`;
       if (r.batBonus>0)  bonuses+=`<span class="pill pill-bat" title="Switch/LH bonus">${r.bat}+${r.batBonus}</span>`;
-      if (r.htPen<0)     bonuses+=`<span class="pill pill-pen" title="Hit tool penalty (B_H<170)">HT${r.htPen}</span>`;
+      if (r.htPen<0)     bonuses+=`<span class="pill pill-pen" title="Hit tool penalty (B_H<170): contact risk discounts OBP grade + flat penalty">HT${r.htPen}</span>`;
     } else {
       bonuses += r.isSP
         ? `<span class="pill pill-sp" title="Starter eligible (END≥5.0)">SP</span>`
