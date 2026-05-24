@@ -664,7 +664,11 @@ function scoreHitter(r) {
   const contactFactor = bH >= 170 ? 1.0 : Math.min(1.0, bH / 170);
   const obpG = Math.round((obpG_raw||0) * contactFactor);
 
-  const hit = (obpG||0)*.35 + (xbhG||0)*.33 + (kbbG||0)*.12 + (gbG||0)*.12 + (pullG||0)*.08;
+  // HIT: OBP 40%, XBH 38%, KBB 15%, GB% 4%, Pull 3%
+  // GB% and Pull are small power-style signals, not large penalties
+  // Contact/gap hitters (high OBP, all-fields approach) should not be
+  // penalized for not being pull power hitters
+  const hit = (obpG||0)*.40 + (xbhG||0)*.38 + (kbbG||0)*.15 + (gbG||0)*.04 + (pullG||0)*.03;
 
   // FLD
   const isLHthrowIF = throw_==='L' && ['2B','3B','SS'].includes(pos);
@@ -678,7 +682,23 @@ function scoreHitter(r) {
     fld = (fldG||0)*w.fld + rngNorm*w.rw + (armG||0)*w.arm + (runG||0)*w.run;
   }
 
-  const posBonus = POS_PREMIUM[pos] ?? 0;
+  // Positional premium — conditional on athleticism for premium positions
+  // CF: must have real speed to man center; slow CF is a corner OF
+  // SS: must have real range; poor-range SS is a 3B/2B
+  // C: arm is what makes catcher defense valuable — conditional on arm grade
+  let posBonus;
+  const run   = +(r.Run||0);
+  const ifRng = +(r.IF_Rng||0);
+  const armV  = +(r.Arm||0);
+  if (pos === 'CF') {
+    posBonus = run >= 5.5 ? 1.5 : run >= 4.5 ? 0.75 : 0;
+  } else if (pos === 'SS') {
+    posBonus = ifRng >= 5.0 ? 2.0 : ifRng >= 4.0 ? 1.0 : 0.5;
+  } else if (pos === 'C') {
+    posBonus = armV >= 6.0 ? 3.0 : armV >= 4.5 ? 2.0 : 1.0;
+  } else {
+    posBonus = POS_PREMIUM[pos] ?? 0;
+  }
   const powBonus = ops>=1.050?3.0:ops>=1.000?1.5:ops>=0.950?0.5:0;
   const loBonus  = (obp>=0.390&&+(r.Run||0)>=5.5)?2.0:(obp>=0.380&&+(r.Run||0)>=5.0)?1.0:0;
   const batBonus = bat==='S'?1.0:bat==='L'?0.5:0;

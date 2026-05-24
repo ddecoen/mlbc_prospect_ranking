@@ -32,11 +32,13 @@ The offensive grade is built from five components on a **20–75 scale**, calibr
 
 | Component | Weight | Stat | Logic |
 |-----------|--------|------|-------|
-| OBP Grade | 35% | `(OBP_vL × 0.25) + (OBP_vR × 0.75)` | On-base is the most predictive offensive rate stat |
-| XBH Grade | 33% | `HR×4 + 3B×3 + 2B×2` | Extra base value mirrors the sim's own fantasy formula |
-| K/BB Grade | 12% | `B_SO / B_BB` | Plate discipline — lower is better |
-| GB% Grade | 12% | `B_GB` | Lower GB% = fly ball tendency = more power output |
-| Pull Grade | 8% | `Pull%` | Pull hitters generate more HR; sim rewards pull power |
+| OBP Grade | 40% | `(OBP_vL × 0.25) + (OBP_vR × 0.75)` | On-base is the most predictive offensive rate stat |
+| XBH Grade | 38% | `HR×4 + 3B×3 + 2B×2` | Extra base value mirrors the sim's own fantasy formula |
+| K/BB Grade | 15% | `B_SO / B_BB` | Plate discipline — lower is better |
+| GB% Grade | 4% | `B_GB` | Small power-style signal — low GB% = fly ball tendency |
+| Pull Grade | 3% | `Pull%` | Small pull-power signal |
+
+**Why GB% and Pull are small weights:** Early versions of the model weighted these at 12% and 8% respectively. This incorrectly penalized legitimate contact/gap hitters — a player who hits .845 OPS to all fields with a high GB% would score *lower* than a .803 OPS pull hitter. GB% and Pull are style signals, not outcome signals. OBP and XBH already capture the outcomes; GB% and Pull just add a small bonus for pull-power profiles without punishing other approaches.
 
 **Hit Tool Floor — Contact Credibility:**
 
@@ -95,12 +97,25 @@ These bonuses recognize archetypes the sim rewards but raw grades don't fully ca
 | | Left-handed | +0.5 | Slight platoon advantage vs. majority RHP |
 
 **Positional value premiums:**
-- C: +3.0 — catching defense directly impacts pitcher ERA; hardest position to find offense
-- SS: +2.0 — most difficult defensive position; offensive SS are transformative
-- CF: +1.5 — covers the most ground; leadoff/speed value compounds
-- 2B/3B: +0.5 — premium over corner positions
-- RF/LF: 0 — pure bat positions
-- 1B: −0.5 — easiest defensive position; bat must carry the value
+
+Premium positions (CF, SS, C) have **athleticism-conditional bonuses** — the premium only applies if the player can actually man the position at an above-average level. A slow CF is really a corner outfielder; a poor-range SS is really a third baseman.
+
+| Position | Condition | Bonus |
+|----------|-----------|-------|
+| C | Arm ≥ 6.0 | +3.0 |
+| C | Arm ≥ 4.5 | +2.0 |
+| C | Arm < 4.5 | +1.0 |
+| SS | IF_Rng ≥ 5.0 | +2.0 |
+| SS | IF_Rng ≥ 4.0 | +1.0 |
+| SS | IF_Rng < 4.0 | +0.5 |
+| CF | Run ≥ 5.5 | +1.5 |
+| CF | Run ≥ 4.5 | +0.75 |
+| CF | Run < 4.5 | 0 |
+| 2B / 3B | — | +0.5 |
+| RF / LF | — | 0 |
+| 1B | — | −0.5 |
+
+A slow CF with Run=3.95 gets the same 0 bonus as a left fielder — because that player is a left fielder who happens to be playing center. The premium is for the position played at a premium level, not just for the positional label in the roster file.
 
 ---
 
@@ -176,6 +191,10 @@ Bins are calibrated to the **full non-ML prospect population** so grades are con
 **No level adjustment:** The MLBC edits represent a player's true ability grades — they do not change as a player moves from A-ball to AAA. A 19-year-old in A-ball with elite grades should not be ranked below a 24-year-old in AAA with average grades just because he hasn't been promoted yet. Level tells you *when* you get the value. The ranking tells you *how much* value there is.
 
 **90/10 bat/glove for hitters:** Analysis of the sim's fantasy scoring formula (1B=1, 2B=2, 3B=3, HR=4, BB=1, SO=−1) shows that offensive production drives virtually all measurable value. The run value difference between elite and poor defense is approximately 3–4 runs per season, while a single extra OPS point represents ~0.4 runs per 600 AB. The bat-to-glove run value ratio is approximately 10:1.
+
+**GB% and Pull as small signals, not large weights:** GB% and Pull were originally weighted at 12% and 8% of HIT respectively. This created a systematic bias against contact/gap hitters — a player hitting .845 OPS to all fields would score lower than a .803 pull hitter because his high GB% and low Pull% dragged down his HIT score. GB% and Pull are *style* signals, not *outcome* signals. OBP and XBH already capture the outcomes. Reducing these to 4% and 3% means they add a small bonus for pull-power profiles without penalizing other legitimate hitting approaches.
+
+**Conditional positional premiums:** The positional bonus should only apply when the player can actually play the position at a premium level. A CF with below-average speed (Run < 4.5) is really a corner outfielder playing center — giving him the same +1.5 bonus as a true center fielder with elite speed would systematically overrate him. The same logic applies to SS (gated on range) and C (gated on arm strength). Fixed bonuses based purely on the roster position label, regardless of whether the player has the tools to play it, produce rankings that no experienced scout would recognize.
 
 **Positional premiums instead of defensive scoring inflation:** Rather than letting fielding grades inflate overall scores for corner players (a known bug in earlier versions of this model), positional scarcity is handled as a clean additive bonus. This correctly ranks a .850 OPS shortstop above a .850 OPS first baseman without letting IF_Rng artificially boost a first baseman's score.
 
