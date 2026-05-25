@@ -158,9 +158,18 @@ This gives the true expected OPS on any randomly selected pitch, accounting for 
 
 **Endurance (END) as a gate only:**
 - END ≥ 5.0 → Starter-eligible, no adjustment
-- END < 5.0 → Reliever penalty (−5 points)
+- END < 5.0 → Reliever penalty (−3 points)
 
-Endurance affects *volume* of contribution, not *quality*. The gate prevents relievers from being overrated relative to starters but does not otherwise favor workhorse arms. A pitcher with END=5.5 and elite W_OPS is correctly ranked above one with END=8.0 and mediocre W_OPS.
+The penalty was reduced from −5 to −3 because some high-quality relievers have genuine roster value as swingmen or high-leverage arms. A −5 gate was washing out pitchers who belong in the top 200 regardless of role.
+
+**Elite Closer Bonus (+2.0):**
+
+A reliever with true ace-level pitch quality AND elite command is a genuine asset regardless of endurance. If a pitcher meets all three conditions:
+- END < 5.0 (reliever role)
+- W_OPS < 0.660 (top-tier pitch quality — the best ~1% of the RP pool)
+- K/BB > 3.0 (elite command)
+
+…he receives a +2.0 bonus. This partially offsets the −3 reliever penalty, netting −1 overall — correctly placing an elite closer just slightly below an equivalent starter, rather than burying him. The W_OPS < 0.660 threshold was calibrated to the actual prospect pool; sub-.600 W_OPS relievers essentially don't exist because that level of stuff almost always comes with enough durability to start.
 
 ---
 

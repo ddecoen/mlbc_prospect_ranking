@@ -750,11 +750,18 @@ function scorePitcher(r) {
   const kbbG  = gradeVal(kbb,     KBB_P_BINS, KBB_P_GRD);
 
   // STUFF = W_OPS 85% + KBB 15%
-  // W_OPS is the complete pitch quality signal for a fixed-probability sim.
-  // K/BB is the only independent signal (walks aren't captured in pitch OPS).
   const stuff = (wOpsG||0)*0.85 + (kbbG||0)*0.15;
-  const endMod = isSP ? 0 : -5;
-  const overall = stuff + endMod;
+
+  // END gate: starter vs reliever
+  // Reduced from -5 to -3 — some high-END relievers have real roster value
+  const endMod = isSP ? 0 : -3;
+
+  // Elite closer bonus: reliever with starter-quality stuff AND elite command
+  // W_OPS < 0.660 (top tier pitch quality) + K/BB > 3.0 (elite command)
+  // These are legitimate #1 closer profiles regardless of endurance
+  const eliteCloserBonus = (!isSP && wOpsAvg < 0.660 && kbb > 3.0) ? 2.0 : 0;
+
+  const overall = stuff + endMod + eliteCloserBonus;
 
   return {
     rank:0, name:`${r.Last}, ${r.First}`, first:r.First, last:r.Last,
@@ -765,7 +772,7 @@ function scorePitcher(r) {
     runG:null, armG:null, fldG:null,
     obp:null, ops:null, hr:null, bb:null, so:null, run:null,
     posBonus:null, powBonus:null, loBonus:null, batBonus:null, htPen:null,
-    wops:wOpsAvg, end, kbb,
+    wops:wOpsAvg, end, kbb, isSP, eliteCloserBonus,
     p_so:+(r.P_SO||0), p_bb:+(r.P_BB||0), p_gb:+(r.P_GB||0)
   };
 }
@@ -890,7 +897,9 @@ function renderTable() {
     } else {
       bonuses += r.isSP
         ? `<span class="pill pill-sp" title="Starter eligible (END≥5.0)">SP</span>`
-        : `<span class="pill pill-rp" title="Reliever only (END<5.0)">RP-5</span>`;
+        : `<span class="pill pill-rp" title="Reliever only (END<5.0)">RP-3</span>`;
+      if (r.eliteCloserBonus > 0)
+        bonuses += `<span class="pill pill-pow" title="Elite closer: W_OPS<.660 + K/BB>3.0">CLOSER+2</span>`;
     }
     bonuses += '</div>';
 
