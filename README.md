@@ -157,6 +157,22 @@ This gives the true expected OPS on any randomly selected pitch, accounting for 
 
 **Why not K rate separately?** Strikeouts are the best possible outcome (no baserunner, no defense required), but their value is already reflected in the per-pitch OPS against. A pitcher who strikes out 200 batters per 600 has a lower OPS against than one who strikes out 80, all else equal.
 
+**W_OPS grade scale is percentile-anchored** to the actual non-ML prospect pitcher pool — not arbitrary absolute thresholds. This means grade 65 genuinely means top 10%, grade 70 means top 5%, and so on. Early versions used fixed OPS thresholds (e.g. grade 60 = W_OPS < 0.675) which compressed the entire top 5-15% of pitchers into two adjacent grades, causing quality arms to appear "below average" on the scale. The current bins:
+
+| Grade | W_OPS threshold | Pool percentile |
+|-------|----------------|-----------------|
+| 80 | < 0.638 | Top 1% |
+| 75 | < 0.659 | Top 3% |
+| 70 | < 0.678 | Top 5% |
+| 65 | < 0.703 | Top 10% |
+| 60 | < 0.719 | Top 15% |
+| 55 | < 0.736 | Top 25% |
+| 50 | < 0.764 | Top 40% |
+| 45 | < 0.811 | Top 60% |
+| 40 | < 0.855 | Top 75% |
+| 35 | < 0.908 | Top 90% |
+| 30 | ≥ 0.908 | Bottom 10% |
+
 **Endurance (END) as a gate only:**
 - END ≥ 5.0 → Starter-eligible, no adjustment
 - END < 5.0 → Reliever penalty (−3 points)
@@ -167,10 +183,21 @@ The penalty was reduced from −5 to −3 because some high-quality relievers ha
 
 A reliever with true ace-level pitch quality AND elite command is a genuine asset regardless of endurance. If a pitcher meets all three conditions:
 - END < 5.0 (reliever role)
-- W_OPS < 0.660 (top-tier pitch quality — the best ~1% of the RP pool)
+- W_OPS < 0.660 (top ~2.5% of the prospect pitcher pool)
 - K/BB > 3.0 (elite command)
 
-…he receives a +2.0 bonus. This partially offsets the −3 reliever penalty, netting −1 overall — correctly placing an elite closer just slightly below an equivalent starter, rather than burying him. The W_OPS < 0.660 threshold was calibrated to the actual prospect pool; sub-.600 W_OPS relievers essentially don't exist because that level of stuff almost always comes with enough durability to start.
+…he receives a +2.0 bonus. This partially offsets the −3 reliever penalty, netting −1 overall — correctly placing an elite closer just slightly below an equivalent starter.
+
+**Elite BP Arm Bonus (+2.0):**
+
+A swingman/setup arm in the END 4.0–4.9 tier with quality stuff and decent command also receives a +2.0 bonus:
+- END 4.0–4.9 (swingman tier — not a true closer, not a starter)
+- W_OPS ≤ 0.680 (top ~5% of the prospect pitcher pool)
+- K/BB > 2.5 (sufficient command)
+
+**Elite K/BB Bonus (+2.0):**
+
+Any pitcher — starter or reliever — with K/BB > 4.0 receives a +2.0 bonus. This is the top ~3% of the prospect pool and represents truly elite command that is meaningful on top of W_OPS (since K/BB is not otherwise penalized in STUFF).
 
 ---
 
@@ -208,7 +235,9 @@ Bins are calibrated to the **full non-ML prospect population** so grades are con
 
 **Positional premiums instead of defensive scoring inflation:** Rather than letting fielding grades inflate overall scores for corner players (a known bug in earlier versions of this model), positional scarcity is handled as a clean additive bonus. This correctly ranks a .850 OPS shortstop above a .850 OPS first baseman without letting IF_Rng artificially boost a first baseman's score.
 
-**W_OPS as the complete pitcher signal:** Early versions of the model added components like Top-2 pitch quality, worst pitch OPS, and strikeout rate on top of W_OPS. All of these are wrong for the same reason: the sim selects pitches from a fixed probability distribution. You cannot instruct your pitcher to throw his fastball more. Because the usage percentages are fixed sim probabilities, W_OPS already captures every aspect of pitch quality — the best pitch is weighted by how often the sim calls it, the worst pitch is weighted by how often the sim calls it, and everything in between. Adding any pitch-specific component on top of W_OPS is double-counting. K/BB is the only genuinely independent signal because walks aren't captured in per-pitch OPS splits.
+**W_OPS as the complete pitcher signal:** Early versions of the model added components like Top-2 pitch quality, worst pitch OPS, and strikeout rate on top of W_OPS. All of these are wrong for the same reason: the sim selects pitches from a fixed probability distribution. You cannot instruct your pitcher to throw his fastball more. Because the usage percentages are fixed sim probabilities, W_OPS already captures every aspect of pitch quality — the best pitch is weighted by how often the sim calls it, the worst pitch is weighted by how often the sim calls it, and everything in between. Adding any pitch-specific component on top of W_OPS is double-counting. K/BB is only rewarded as a bonus for true outliers (K/BB > 4.0), never penalized.
+
+**Percentile-anchored W_OPS bins:** Early bin calibration used arbitrary absolute OPS thresholds that compressed the entire top 5–15% of pitchers into two adjacent grade buckets. A pitcher in the top 5% of the pool was getting a grade of 55 — "below average" on the 20-80 scale. The current bins anchor each grade to an actual percentile of the non-ML prospect pitcher pool so that grade 65 genuinely means top 10%, grade 70 means top 5%, and so on. This fixed systematic underrating of quality pen arms whose W_OPS fell just outside the elite tier.
 
 **No GB% for pitchers:** Ground ball rate is already embedded in W_OPS — a pitcher who generates grounders allows fewer hits and fewer home runs, which shows directly in his pitch OPS against. Adding GB% as a separate term double-counts it while penalizing strikeout pitchers who achieve the same W_OPS through a different approach. Both are valid pitcher archetypes; W_OPS correctly treats them equivalently at the same run prevention level.
 

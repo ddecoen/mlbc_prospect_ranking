@@ -531,8 +531,11 @@ const ARM_GRD   = [20,25,30,35,40,45,50,55,60,65,70,75];
 const FLD_BINS  = [0.930,0.950,0.962,0.970,0.976,0.981,0.985,0.988,0.991,0.993,0.995,0.997,1.001];
 const FLD_GRD   = [20,25,30,35,40,45,50,55,60,65,70,75];
 
-const WOPS_BINS = [0.50,0.575,0.600,0.625,0.650,0.675,0.700,0.730,0.765,0.810,0.870,1.00];
-const WOPS_GRD  = [80,75,70,65,60,55,50,45,40,35,30];
+// W_OPS bins anchored to actual percentiles of the non-ML prospect pitcher pool
+// Grade 70 = top 5%, Grade 65 = top 10%, Grade 55 = top 30%, Grade 50 = top 40%
+// This means grade 55 actually means "above average" not "below average"
+const WOPS_BINS = [0.500,0.638,0.659,0.678,0.703,0.719,0.736,0.764,0.811,0.855,0.908,1.000];
+const WOPS_GRD  = [80,   75,   70,   65,   60,   55,   50,   45,   40,   35,   30];
 const KBB_P_BINS= [0.0,0.9,1.2,1.5,1.8,2.1,2.4,2.8,3.2,3.7,4.3,10.0];
 const KBB_P_GRD = [20,25,30,35,40,45,50,55,60,65,70];
 
