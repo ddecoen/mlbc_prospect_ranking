@@ -491,6 +491,26 @@ function gradeVal(val, bins, grades) {
   return grades[grades.length - 1];
 }
 
+// Continuous grade interpolation — avoids hard cliff at bin edges
+// Used for W_OPS where a 0.001 difference shouldn't mean 5 grade points
+function gradeSmooth(val, bins, grades) {
+  if (val === null || val === undefined || isNaN(val)) return null;
+  val = +val;
+  if (val <= bins[0]) return grades[0];
+  if (val >= bins[bins.length-1]) return grades[grades.length-1];
+  for (let i = 0; i < bins.length - 1; i++) {
+    if (val > bins[i] && val <= bins[i+1]) {
+      // t=0 at left edge (just above bins[i]), t=1 at right edge (bins[i+1])
+      const t = (val - bins[i]) / (bins[i+1] - bins[i]);
+      const gLeft  = grades[i];
+      const gRight = (i+1 < grades.length) ? grades[i+1] : grades[i];
+      // Interpolate: at left edge of bin get gLeft, at right edge get gRight
+      return gLeft + t * (gRight - gLeft);
+    }
+  }
+  return grades[grades.length-1];
+}
+
 // ═══════════════════════════════════════════════════════════════
 // GRADE BINS — identical to Python model
 // ═══════════════════════════════════════════════════════════════
@@ -745,23 +765,32 @@ function scorePitcher(r) {
   const kbb  = +(r.P_BB||0)>0 ? +(r.P_SO||0)/+(r.P_BB||0) : 0;
   const end  = +(r.END||0);
   const isSP = end >= 5.0;
+  const p_gb = +(r.P_GB||0);
 
-  const wOpsG = gradeVal(wOpsAvg, WOPS_BINS, WOPS_GRD);
-  const kbbG  = gradeVal(kbb,     KBB_P_BINS, KBB_P_GRD);
+  // Smooth interpolation for W_OPS avoids hard grade cliffs at bin edges
+  const wOpsG = gradeSmooth(wOpsAvg, WOPS_BINS, WOPS_GRD);
+  const kbbG  = gradeVal(kbb, KBB_P_BINS, KBB_P_GRD);
 
-  // STUFF = W_OPS 85% + KBB 15%
-  const stuff = (wOpsG||0)*0.85 + (kbbG||0)*0.15;
+  // STUFF = pure W_OPS — the complete pitch quality signal for a fixed-probability sim
+  // K/BB is NOT penalized here — walks are already in the pitch OPS splits
+  // Only truly elite command (K/BB>4.0) gets a bonus, nothing else
+  const stuff = wOpsG||0;
 
   // END gate: starter vs reliever
-  // Reduced from -5 to -3 — some high-END relievers have real roster value
   const endMod = isSP ? 0 : -3;
 
-  // Elite closer bonus: reliever with starter-quality stuff AND elite command
-  // W_OPS < 0.660 (top tier pitch quality) + K/BB > 3.0 (elite command)
-  // These are legitimate #1 closer profiles regardless of endurance
+  // Elite closer: RP with ace-level stuff (W_OPS<.660) + elite command (K/BB>3.0)
   const eliteCloserBonus = (!isSP && wOpsAvg < 0.660 && kbb > 3.0) ? 2.0 : 0;
 
-  const overall = stuff + endMod + eliteCloserBonus;
+  // Elite BP arm: swingman tier (END 4.0-4.9) with quality stuff + command
+  // High-leverage setup arms — valuable even without true closing ability
+  const eliteBPBonus = (!isSP && end >= 4.0 && wOpsAvg <= 0.680 && kbb > 2.5) ? 2.0 : 0;
+
+  // Elite K/BB bonus: truly outlier command (top ~3% of pool, K/BB>4.0)
+  // Rewards command that is independent of and additive to W_OPS
+  const eliteKBBBonus = kbb > 4.0 ? 2.0 : 0;
+
+  const overall = stuff + endMod + eliteCloserBonus + eliteBPBonus + eliteKBBBonus;
 
   return {
     rank:0, name:`${r.Last}, ${r.First}`, first:r.First, last:r.Last,
@@ -772,7 +801,8 @@ function scorePitcher(r) {
     runG:null, armG:null, fldG:null,
     obp:null, ops:null, hr:null, bb:null, so:null, run:null,
     posBonus:null, powBonus:null, loBonus:null, batBonus:null, htPen:null,
-    wops:wOpsAvg, end, kbb, isSP, eliteCloserBonus,
+    wops:wOpsAvg, end, kbb, isSP,
+    eliteCloserBonus, eliteBPBonus, eliteKBBBonus,
     p_so:+(r.P_SO||0), p_bb:+(r.P_BB||0), p_gb:+(r.P_GB||0)
   };
 }
@@ -900,6 +930,10 @@ function renderTable() {
         : `<span class="pill pill-rp" title="Reliever only (END<5.0)">RP-3</span>`;
       if (r.eliteCloserBonus > 0)
         bonuses += `<span class="pill pill-pow" title="Elite closer: W_OPS<.660 + K/BB>3.0">CLOSER+2</span>`;
+      if (r.eliteBPBonus > 0)
+        bonuses += `<span class="pill pill-lo" title="Elite BP arm: END 4-4.9, W_OPS≤.680, K/BB>2.5, GB>55%">BP+2</span>`;
+      if (r.eliteKBBBonus > 0)
+        bonuses += `<span class="pill pill-bat" title="Elite command: K/BB>4.0 (top 3% of pool)">KBB+2</span>`;
     }
     bonuses += '</div>';
 

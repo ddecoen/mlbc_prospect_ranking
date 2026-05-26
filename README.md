@@ -132,12 +132,13 @@ The sim engine selects pitches randomly according to each pitcher's usage percen
 - **Pitch count** doesn't matter — a 3-pitch pitcher who dominates with all three is equal to a 5-pitch pitcher with the same W_OPS
 - **Top-2 or bottom-1 metrics** double-count what W_OPS already captures
 
-The only independent signal is **K/BB** — walks and strikeouts are not captured in per-pitch OPS splits, and command is genuinely pitcher-controlled regardless of what the sim randomly selects.
+Walks are already captured in per-pitch OBP against, which flows directly into W_OPS. K/BB only appears as a **bonus for true outliers** — it does not penalize anyone.
 
 | Component | Weight | Stat | Logic |
 |-----------|--------|------|-------|
-| W_OPS | 85% | Usage-weighted OPS against across all pitches | Complete pitch quality signal — captures best, worst, and mix simultaneously |
-| K/BB | 15% | `P_SO / P_BB` | Only independent signal; command is pitcher-controlled |
+| W_OPS | 100% | Usage-weighted OPS against across all pitches | Complete pitch quality signal — captures best, worst, mix, and command simultaneously |
+
+**Why K/BB is not in STUFF:** Walks are already reflected in per-pitch OBP against — a pitcher who walks batters has a worse W_OPS as a direct result. Penalizing K/BB on top of W_OPS double-counts the same walks and systematically underrates pitchers who get outs without strikeouts: groundball artists, soft-tossers, and deception-based arms. In a sim where a strikeout and a groundout are both just outs, K/BB is not an independent quality signal on top of W_OPS. A pitcher like Charlie Blanco — three pitches all under .720 OPS, 65% GB rate — should not be ranked at 555th because his K:BB ratio is unflattering. His pitch outcomes are what matter.
 
 **How W_OPS is computed:**
 
