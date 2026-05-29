@@ -273,16 +273,49 @@
   .lvl-A   { background: rgba(255,255,255,.05); color: var(--text2); }
   .lvl-IA  { background: rgba(255,71,87,.1); color: var(--danger); }
 
-  /* score bar */
-  .score-cell { display: flex; align-items: center; gap: 8px; }
-  .score-bar-wrap { width: 60px; height: 4px; background: var(--border); border-radius: 2px; flex-shrink: 0; }
-  .score-bar { height: 100%; border-radius: 2px; }
-  .score-val { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; width: 36px; }
-  .score-overall .score-val { color: var(--accent); font-size: 14px; }
-  .score-overall .score-bar { background: var(--accent); }
-  .score-hit .score-bar { background: var(--hitter); }
-  .score-stuff .score-bar { background: var(--pitcher); }
-  .score-fld .score-bar { background: #a78bfa; }
+  /* ── STACKED GRADE BARS ── */
+  .grade-bars { display: flex; flex-direction: column; gap: 3px; min-width: 160px; }
+  .grade-row { display: flex; align-items: center; gap: 6px; }
+  .grade-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    width: 28px;
+    color: var(--text3);
+    flex-shrink: 0;
+  }
+  .grade-track {
+    flex: 1;
+    height: 8px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 1px;
+    overflow: hidden;
+    position: relative;
+  }
+  .grade-fill {
+    height: 100%;
+    border-radius: 1px;
+    transition: width .3s ease;
+  }
+  .grade-fill-hit    { background: var(--hitter); }
+  .grade-fill-stuff  { background: var(--pitcher); }
+  .grade-fill-fld    { background: #a78bfa; }
+  .grade-fill-ovr    { background: var(--accent); }
+  .grade-fill-end    { background: #ff6b6b; }
+  .grade-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    width: 32px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .grade-num-hit   { color: var(--hitter); }
+  .grade-num-stuff { color: var(--pitcher); }
+  .grade-num-fld   { color: #a78bfa; }
+  .grade-num-ovr   { color: var(--accent); font-size: 13px; }
+  .grade-num-end   { color: #ff6b6b; }
 
   /* bonus pills */
   .bonus-pills { display: flex; gap: 3px; flex-wrap: wrap; max-width: 160px; }
@@ -428,10 +461,7 @@
           <th onclick="sortBy('age')">AGE<span class="sort-arrow">↕</span></th>
           <th onclick="sortBy('team')">TEAM<span class="sort-arrow">↕</span></th>
           <th onclick="sortBy('level')">LVL<span class="sort-arrow">↕</span></th>
-          <th onclick="sortBy('overall')" class="sorted">OVERALL<span class="sort-arrow">↓</span></th>
-          <th onclick="sortBy('hit')">HIT<span class="sort-arrow">↕</span></th>
-          <th onclick="sortBy('stuff')">STUFF<span class="sort-arrow">↕</span></th>
-          <th onclick="sortBy('fld')">FLD<span class="sort-arrow">↕</span></th>
+          <th onclick="sortBy('overall')" class="sorted">GRADE BARS ↓</th>
           <th>GRADES</th>
           <th>BONUSES</th>
           <th>DETAILS</th>
@@ -531,11 +561,13 @@ const ARM_GRD   = [20,25,30,35,40,45,50,55,60,65,70,75];
 const FLD_BINS  = [0.930,0.950,0.962,0.970,0.976,0.981,0.985,0.988,0.991,0.993,0.995,0.997,1.001];
 const FLD_GRD   = [20,25,30,35,40,45,50,55,60,65,70,75];
 
-// W_OPS bins anchored to actual percentiles of the non-ML prospect pitcher pool
-// Grade 70 = top 5%, Grade 65 = top 10%, Grade 55 = top 30%, Grade 50 = top 40%
-// This means grade 55 actually means "above average" not "below average"
-const WOPS_BINS = [0.500,0.638,0.659,0.678,0.703,0.719,0.736,0.764,0.811,0.855,0.908,1.000];
-const WOPS_GRD  = [80,   75,   70,   65,   60,   55,   50,   45,   40,   35,   30];
+// W_OPS bins: elite tier uses absolute thresholds to preserve separation
+// between genuinely elite arms; middle/bottom uses percentile anchoring.
+// Grade 80 = top 0.2% (Lausier/McLaughin/Koufax tier)
+// Grade 75 = top 0.5%, 70 = top 1%, 65 = top 3%, 60 = top 5-8%
+// Grade 55 = top 10-18%, 50 = top 30%, 45 = top 45%, etc.
+const WOPS_BINS = [0.500,0.575,0.595,0.615,0.640,0.660,0.680,0.710,0.745,0.790,0.850,1.000];
+const WOPS_GRD  = [80,   75,   70,   65,   62,   58,   54,   50,   45,   40,   35];
 const KBB_P_BINS= [0.0,0.9,1.2,1.5,1.8,2.1,2.4,2.8,3.2,3.7,4.3,10.0];
 const KBB_P_GRD = [20,25,30,35,40,45,50,55,60,65,70];
 
@@ -769,15 +801,22 @@ function scorePitcher(r) {
   const end  = +(r.END||0);
   const isSP = end >= 5.0;
   const p_gb = +(r.P_GB||0);
+  const p_bb = +(r.P_BB||0);
 
   // Smooth interpolation for W_OPS avoids hard grade cliffs at bin edges
   const wOpsG = gradeSmooth(wOpsAvg, WOPS_BINS, WOPS_GRD);
-  const kbbG  = gradeVal(kbb, KBB_P_BINS, KBB_P_GRD);
 
-  // STUFF = pure W_OPS — the complete pitch quality signal for a fixed-probability sim
-  // K/BB is NOT penalized here — walks are already in the pitch OPS splits
-  // Only truly elite command (K/BB>4.0) gets a bonus, nothing else
+  // STUFF = pure W_OPS — complete pitch quality signal
   const stuff = wOpsG||0;
+
+  // Walk penalty — extreme walk rates hurt real roster value
+  // W_OPS partially captures walks but 79 BB is a genuine red flag
+  const bbPen = p_bb > 75 ? -3.0
+              : p_bb >= 70 ? -2.0
+              : p_bb >= 65 ? -1.75
+              : p_bb >= 60 ? -1.5
+              : p_bb >= 55 ? -1.0
+              : 0;
 
   // END gate: starter vs reliever
   const endMod = isSP ? 0 : -3;
@@ -786,14 +825,12 @@ function scorePitcher(r) {
   const eliteCloserBonus = (!isSP && wOpsAvg < 0.660 && kbb > 3.0) ? 2.0 : 0;
 
   // Elite BP arm: swingman tier (END 4.0-4.9) with quality stuff + command
-  // High-leverage setup arms — valuable even without true closing ability
   const eliteBPBonus = (!isSP && end >= 4.0 && wOpsAvg <= 0.680 && kbb > 2.5) ? 2.0 : 0;
 
   // Elite K/BB bonus: truly outlier command (top ~3% of pool, K/BB>4.0)
-  // Rewards command that is independent of and additive to W_OPS
   const eliteKBBBonus = kbb > 4.0 ? 2.0 : 0;
 
-  const overall = stuff + endMod + eliteCloserBonus + eliteBPBonus + eliteKBBBonus;
+  const overall = stuff + endMod + bbPen + eliteCloserBonus + eliteBPBonus + eliteKBBBonus;
 
   return {
     rank:0, name:`${r.Last}, ${r.First}`, first:r.First, last:r.Last,
@@ -804,8 +841,8 @@ function scorePitcher(r) {
     runG:null, armG:null, fldG:null,
     obp:null, ops:null, hr:null, bb:null, so:null, run:null,
     posBonus:null, powBonus:null, loBonus:null, batBonus:null, htPen:null,
-    wops:wOpsAvg, end, kbb, isSP,
-    eliteCloserBonus, eliteBPBonus, eliteKBBBonus,
+    wops:wOpsAvg, end, kbb, isSP, p_bb,
+    eliteCloserBonus, eliteBPBonus, eliteKBBBonus, bbPen,
     p_so:+(r.P_SO||0), p_bb:+(r.P_BB||0), p_gb:+(r.P_GB||0)
   };
 }
@@ -880,29 +917,56 @@ function renderTable() {
       ? `<span class="rank-badge rank-${dispRank}">${dispRank}</span>`
       : `<span style="color:var(--text3);font-family:'IBM Plex Mono',monospace;font-size:11px">${dispRank}</span>`;
 
-    const ov = r.overall.toFixed(1);
-    const ovPct = Math.min(100, Math.max(0, (r.overall - 20) / 80 * 100));
+    const ov    = r.overall.toFixed(1);
+    const ovPct = Math.min(100, Math.max(0, (r.overall - 20) / 75 * 100));
 
-    const hitCell = r.type==='H'
-      ? `<div class="score-cell score-hit">
-           <div class="score-bar-wrap"><div class="score-bar" style="width:${Math.min(100,(r.hit-20)/60*100)}%"></div></div>
-           <span class="score-val">${r.hit.toFixed(1)}</span>
-         </div>`
-      : `<span style="color:var(--text3)">—</span>`;
+    // Helper: pct fill for grade bars (20-80 scale)
+    const pct = v => v ? Math.min(100, Math.max(0, (v-20)/60*100)).toFixed(1) : 0;
 
-    const stuffCell = r.type==='P'
-      ? `<div class="score-cell score-stuff">
-           <div class="score-bar-wrap"><div class="score-bar" style="width:${Math.min(100,(r.stuff-20)/60*100)}%"></div></div>
-           <span class="score-val">${r.stuff.toFixed(1)}</span>
-         </div>`
-      : `<span style="color:var(--text3)">—</span>`;
-
-    const fldCell = r.type==='H'
-      ? `<div class="score-cell score-fld">
-           <div class="score-bar-wrap"><div class="score-bar" style="width:${Math.min(100,(r.fld-20)/60*100)}%"></div></div>
-           <span class="score-val">${r.fld.toFixed(1)}</span>
-         </div>`
-      : `<span style="color:var(--text3)">—</span>`;
+    // Stacked grade bars — mimics the sim site's END/STF/OVR layout
+    let gradeBars;
+    if (r.type === 'H') {
+      const hitPct = pct(r.hit);
+      const fldPct = pct(r.fld);
+      gradeBars = `<div class="grade-bars">
+        <div class="grade-row">
+          <span class="grade-label">FLD</span>
+          <div class="grade-track"><div class="grade-fill grade-fill-fld" style="width:${fldPct}%"></div></div>
+          <span class="grade-num grade-num-fld">${r.fld?r.fld.toFixed(0):'—'}</span>
+        </div>
+        <div class="grade-row">
+          <span class="grade-label">HIT</span>
+          <div class="grade-track"><div class="grade-fill grade-fill-hit" style="width:${hitPct}%"></div></div>
+          <span class="grade-num grade-num-hit">${r.hit?r.hit.toFixed(0):'—'}</span>
+        </div>
+        <div class="grade-row">
+          <span class="grade-label">OVR</span>
+          <div class="grade-track"><div class="grade-fill grade-fill-ovr" style="width:${ovPct}%"></div></div>
+          <span class="grade-num grade-num-ovr">${ov}</span>
+        </div>
+      </div>`;
+    } else {
+      const endVal  = r.end ? Math.min(80, Math.max(20, r.end * 10)).toFixed(0) : '—';
+      const endPct  = r.end ? Math.min(100,(r.end*10-20)/60*100).toFixed(1) : 0;
+      const stfPct  = pct(r.stuff);
+      gradeBars = `<div class="grade-bars">
+        <div class="grade-row">
+          <span class="grade-label">END</span>
+          <div class="grade-track"><div class="grade-fill grade-fill-end" style="width:${endPct}%"></div></div>
+          <span class="grade-num grade-num-end">${r.end?r.end.toFixed(1):'—'}</span>
+        </div>
+        <div class="grade-row">
+          <span class="grade-label">STF</span>
+          <div class="grade-track"><div class="grade-fill grade-fill-stuff" style="width:${stfPct}%"></div></div>
+          <span class="grade-num grade-num-stuff">${r.stuff?r.stuff.toFixed(0):'—'}</span>
+        </div>
+        <div class="grade-row">
+          <span class="grade-label">OVR</span>
+          <div class="grade-track"><div class="grade-fill grade-fill-ovr" style="width:${ovPct}%"></div></div>
+          <span class="grade-num grade-num-ovr">${ov}</span>
+        </div>
+      </div>`;
+    }
 
     // Grades
     let gradesHtml = '';
@@ -934,9 +998,11 @@ function renderTable() {
       if (r.eliteCloserBonus > 0)
         bonuses += `<span class="pill pill-pow" title="Elite closer: W_OPS<.660 + K/BB>3.0">CLOSER+2</span>`;
       if (r.eliteBPBonus > 0)
-        bonuses += `<span class="pill pill-lo" title="Elite BP arm: END 4-4.9, W_OPS≤.680, K/BB>2.5, GB>55%">BP+2</span>`;
+        bonuses += `<span class="pill pill-lo" title="Elite BP arm: END 4-4.9, W_OPS≤.680, K/BB>2.5">BP+2</span>`;
       if (r.eliteKBBBonus > 0)
         bonuses += `<span class="pill pill-bat" title="Elite command: K/BB>4.0 (top 3% of pool)">KBB+2</span>`;
+      if (r.bbPen < 0)
+        bonuses += `<span class="pill pill-pen" title="Walk penalty (P_BB≥55)">BB${r.bbPen.toFixed(1)}</span>`;
     }
     bonuses += '</div>';
 
@@ -963,15 +1029,7 @@ function renderTable() {
       <td style="color:var(--text2)">${r.age}</td>
       <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${r.team}</td>
       <td><span class="lvl-badge ${lvlClass}">${r.level}</span></td>
-      <td>
-        <div class="score-cell score-overall">
-          <div class="score-bar-wrap"><div class="score-bar" style="width:${ovPct}%"></div></div>
-          <span class="score-val">${ov}</span>
-        </div>
-      </td>
-      <td>${hitCell}</td>
-      <td>${stuffCell}</td>
-      <td>${fldCell}</td>
+      <td>${gradeBars}</td>
       <td>${gradesHtml}</td>
       <td>${bonuses}</td>
       <td>${details}</td>
