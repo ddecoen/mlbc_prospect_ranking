@@ -6,7 +6,29 @@ A browser-based prospect ranking engine for the **Minor League Baseball Club (ML
 
 ---
 
-## How to Use
+## Visual Design
+
+Each prospect row displays three stacked grade bars, styled to match the sim's own player card layout:
+
+**Hitters**
+| Bar | Color | What it measures |
+|-----|-------|-----------------|
+| FLD | Purple | Fielding score — position-weighted range, arm, speed, hands |
+| HIT | Green | Offensive score — OBP, XBH, K/BB, GB%, Pull |
+| OVR | Gold | Overall (90% HIT + 10% FLD + all bonuses) |
+
+**Pitchers**
+| Bar | Color | What it measures |
+|-----|-------|-----------------|
+| END | Red | Raw endurance value (shown as the actual END number, not a grade) |
+| STF | Blue | Stuff score — pure W_OPS on the 20-80 scale |
+| OVR | Gold | Overall (STUFF + END gate + all bonuses/penalties) |
+
+All bars fill proportionally on the **20–80 grade scale** — a grade of 70 fills ~83% of the bar, grade of 50 fills ~50%, grade of 30 fills ~17%. This makes it easy to scan down the OVR column and compare prospects at a glance without reading individual numbers.
+
+The **GRADES** column shows the underlying component grades (OBP, XBH, K/BB for hitters; WOPS, KBB for pitchers). The **BONUSES** column shows pills for all active adjustments — positional premiums, power/leadoff bonuses, SP/RP status, elite closer/BP/K/BB bonuses, walk penalties, and hit tool penalties.
+
+
 
 1. Export two CSV files from your MLBC sim:
    - `League_Roster_XXXX.csv` — full league player roster with all edits/grades
