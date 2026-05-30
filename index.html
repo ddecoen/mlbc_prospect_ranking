@@ -763,7 +763,7 @@ function scoreHitter(r) {
   // B_H=155 is genuinely bad (10th pct); the old -1 was far too lenient
   const htPen = bH>=170?0 : bH>=160?-1 : bH>=150?-3 : bH>=140?-5 : -8;
 
-  const overall = hit*.90 + fld*.10 + posBonus + powBonus + loBonus + batBonus + htPen;
+  const overall = Math.min(80, hit*.90 + fld*.10 + posBonus + powBonus + loBonus + batBonus + htPen);
 
   return {
     rank:0, name:`${r.Last}, ${r.First}`, first:r.First, last:r.Last,
@@ -829,20 +829,24 @@ function scorePitcher(r) {
   // Elite BP arm: swingman tier (END 4.0-4.9) with quality stuff + command
   const eliteBPBonus = (!isSP && end >= 4.0 && wOpsAvg <= 0.680 && kbb > 2.5) ? 2.0 : 0;
 
-  // Elite K/BB bonus: truly outlier command (top ~3% of pool, K/BB>4.0)
-  const eliteKBBBonus = kbb > 4.0 ? 2.0 : 0;
+  const stuffCapped = Math.min(80, stuff);
 
-  // SP quality bonus — rewards elite starters based purely on pitch quality
-  // END is already a gate (≥5.0 = starter eligible); adding it to the bonus
-  // would double-count durability and unfairly penalize quality short starters
-  const spBonus = isSP
-    ? (stuff >= 75 ? 3.0
-      : stuff >= 70 ? 2.0
-      : stuff >= 65 ? 1.0
+  // Bonuses lift pitchers whose raw STUFF undersells their value vs hitters.
+  // At the grade ceiling (STUFF=80), no upward bonus applies — penalties still do.
+  const atCeiling = stuffCapped >= 80;
+
+  // Elite K/BB bonus: outlier command (K/BB>4.0, top ~3% of pool)
+  const eliteKBBBonus = (!atCeiling && kbb > 4.0) ? 2.0 : 0;
+
+  // SP quality bonus: elite starters deserve parity with bonus-stacking hitters
+  const spBonus = (!atCeiling && isSP)
+    ? (stuffCapped >= 75 ? 3.0
+      : stuffCapped >= 70 ? 2.0
+      : stuffCapped >= 65 ? 1.0
       : 0)
     : 0;
 
-  const overall = stuff + endMod + bbPen + eliteCloserBonus + eliteBPBonus + eliteKBBBonus + spBonus;
+  const overall = Math.min(80, stuffCapped + endMod + bbPen + eliteCloserBonus + eliteBPBonus + eliteKBBBonus + spBonus);
 
   return {
     rank:0, name:`${r.Last}, ${r.First}`, first:r.First, last:r.Last,
