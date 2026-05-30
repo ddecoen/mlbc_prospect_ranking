@@ -741,18 +741,33 @@ function scoreHitter(r) {
 
   // Positional premium — conditional on athleticism for premium positions
   // CF: must have real speed to man center; slow CF is a corner OF
-  // SS: must have real range; poor-range SS is a 3B/2B
-  // C: arm is what makes catcher defense valuable — conditional on arm grade
+  // Positional bonus — conditional on athleticism for premium positions
+  // C and SS bonuses are also scaled by positional training rating (F_C, F_SS)
+  // A player at F_C=0.51 gets 51% of the catcher bonus — forces proper position training
+  // CF uses speed as the gate since speed can't be trained (fixed in sim)
   let posBonus;
   const run   = +(r.Run||0);
   const ifRng = +(r.IF_Rng||0);
   const armV  = +(r.Arm||0);
+  const fC    = +(r.F_C||0);
+  const fSS   = +(r.F_SS||0);
   if (pos === 'CF') {
     posBonus = run >= 5.5 ? 1.5 : run >= 4.5 ? 0.75 : 0;
   } else if (pos === 'SS') {
-    posBonus = ifRng >= 5.0 ? 2.0 : ifRng >= 4.0 ? 1.0 : 0.5;
+    const rawSS = ifRng >= 5.0 ? 2.0 : ifRng >= 4.0 ? 1.0 : 0.5;
+    posBonus = Math.round(rawSS * Math.min(1.0, fSS) * 10) / 10;
   } else if (pos === 'C') {
-    posBonus = armV >= 6.0 ? 3.0 : armV >= 4.5 ? 2.0 : 1.0;
+    // Catcher bonus requires a genuine catching arm — weak-armed catchers add no premium
+    // Arm >= 8.0: elite (+3.0) — the true unicorn tier (top 25% of catchers)
+    // Arm >= 6.5: good  (+2.0) — solid starter, real value
+    // Arm >= 5.0: fringe (+1.0) — keeps the position, modest premium
+    // Arm <  5.0: no bonus — bat must carry it; defense is a liability
+    // All scaled by F_C training rating (0–1)
+    const rawC = armV >= 8.0 ? 3.0
+               : armV >= 6.5 ? 2.0
+               : armV >= 5.0 ? 1.0
+               : 0;
+    posBonus = Math.round(rawC * Math.min(1.0, fC) * 10) / 10;
   } else {
     posBonus = POS_PREMIUM[pos] ?? 0;
   }

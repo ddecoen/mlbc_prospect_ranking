@@ -120,24 +120,27 @@ These bonuses recognize archetypes the sim rewards but raw grades don't fully ca
 
 **Positional value premiums:**
 
-Premium positions (CF, SS, C) have **athleticism-conditional bonuses** — the premium only applies if the player can actually man the position at an above-average level. A slow CF is really a corner outfielder; a poor-range SS is really a third baseman.
+Premium positions (CF, SS, C) have **athleticism-conditional bonuses** — the premium only applies if the player can actually man the position at an above-average level.
 
-| Position | Condition | Bonus |
-|----------|-----------|-------|
-| C | Arm ≥ 6.0 | +3.0 |
-| C | Arm ≥ 4.5 | +2.0 |
-| C | Arm < 4.5 | +1.0 |
-| SS | IF_Rng ≥ 5.0 | +2.0 |
-| SS | IF_Rng ≥ 4.0 | +1.0 |
-| SS | IF_Rng < 4.0 | +0.5 |
-| CF | Run ≥ 5.5 | +1.5 |
-| CF | Run ≥ 4.5 | +0.75 |
-| CF | Run < 4.5 | 0 |
-| 2B / 3B | — | +0.5 |
-| RF / LF | — | 0 |
-| 1B | — | −0.5 |
+For **C and SS**, the bonus is additionally **scaled by the positional training rating** (F_C and F_SS in the roster file, on a 0–1 scale). A catcher at F_C=0.51 gets 51% of the bonus — rewarding owners who properly train players at premium positions and correctly reflecting that an untrained catcher is a liability regardless of his arm. **CF uses speed as the gate** since speed is fixed in the sim and cannot be trained.
 
-A slow CF with Run=3.95 gets the same 0 bonus as a left fielder — because that player is a left fielder who happens to be playing center. The premium is for the position played at a premium level, not just for the positional label in the roster file.
+| Position | Condition | Raw Bonus | Scaling |
+|----------|-----------|-----------|---------|
+| C | Arm ≥ 8.0 | +3.0 | × F_C (0–1) — elite arm, top 25% of catchers |
+| C | Arm ≥ 6.5 | +2.0 | × F_C (0–1) — good arm, real value |
+| C | Arm ≥ 5.0 | +1.0 | × F_C (0–1) — fringe, modest premium |
+| C | Arm < 5.0 | 0 | — bat must carry it; defense is a liability |
+| SS | IF_Rng ≥ 5.0 | +2.0 | × F_SS (0–1) |
+| SS | IF_Rng ≥ 4.0 | +1.0 | × F_SS (0–1) |
+| SS | IF_Rng < 4.0 | +0.5 | × F_SS (0–1) |
+| CF | Run ≥ 5.5 | +1.5 | No scaling (speed fixed) |
+| CF | Run ≥ 4.5 | +0.75 | No scaling (speed fixed) |
+| CF | Run < 4.5 | 0 | — |
+| 2B / 3B | — | +0.5 | No scaling |
+| RF / LF | — | 0 | — |
+| 1B | — | −0.5 | — |
+
+Example: Frank Prater has Arm=8.74 (raw bonus = +3.0, elite tier) but F_C=0.51 → actual bonus = 3.0 × 0.51 = **+1.5**. Once trained to F_C=1.0, he earns the full +3.0 — the true unicorn tier. Kevin Diaz (Arm=4.42, fully trained at F_C=1.0) gets **+0** — a weak-armed catcher adds no positional premium regardless of training.
 
 ---
 
