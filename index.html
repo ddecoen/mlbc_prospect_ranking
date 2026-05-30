@@ -811,14 +811,22 @@ function scorePitcher(r) {
   // STUFF = pure W_OPS — complete pitch quality signal
   const stuff = wOpsG||0;
 
-  // Walk penalty — extreme walk rates hurt real roster value
-  // W_OPS partially captures walks but 79 BB is a genuine red flag
-  const bbPen = p_bb > 75 ? -3.0
-              : p_bb >= 70 ? -2.0
-              : p_bb >= 65 ? -1.75
-              : p_bb >= 60 ? -1.5
-              : p_bb >= 55 ? -1.0
-              : 0;
+  const p_h  = +(r.P_H||0);
+
+  // Walk penalty -- context-aware sliding scale
+  // Penalizes poor command but discounts when total baserunners (H+BB) are controlled.
+  // H+BB < 170: penalty x0.25 (walks acceptable -- good hit suppression)
+  // H+BB 170-200: penalty x0.50 (manageable but watch it)
+  // H+BB > 200: full penalty (walks compounding a hit problem)
+  const bbBase = p_bb > 75  ? -3.0
+               : p_bb >= 70 ? -2.0
+               : p_bb >= 65 ? -1.75
+               : p_bb >= 60 ? -1.5
+               : p_bb >= 55 ? -1.0
+               : 0;
+  const hPlusBB = p_h + p_bb;
+  const bbMult  = hPlusBB < 170 ? 0.25 : hPlusBB < 200 ? 0.50 : 1.0;
+  const bbPen   = bbBase * bbMult;
 
   // END gate: starter vs reliever
   const endMod = isSP ? 0 : -3;

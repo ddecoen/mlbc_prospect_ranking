@@ -195,6 +195,30 @@ This gives the true expected OPS on any randomly selected pitch, accounting for 
 | 35 | < 0.908 | Top 90% |
 | 30 | ≥ 0.908 | Bottom 10% |
 
+**Walk Penalty (context-aware):**
+
+Extreme walk rates hurt real roster value, but the penalty is discounted when total baserunners (H + BB) are still under control. A pitcher who walks 60 batters but only allows 120 hits (H+BB=180) is a very different problem from one who walks 60 and allows 175 hits (H+BB=235).
+
+Base penalty by walk count:
+
+| P_BB | Base Penalty |
+|------|-------------|
+| ≥ 55 | −1.0 |
+| ≥ 60 | −1.5 |
+| ≥ 65 | −1.75 |
+| ≥ 70 | −2.0 |
+| > 75 | −3.0 |
+
+Context multiplier applied to the base penalty:
+
+| H + BB total | Multiplier | Rationale |
+|-------------|-----------|-----------|
+| < 170 | × 0.25 | Walks acceptable — strong hit suppression compensates |
+| 170–200 | × 0.50 | Manageable — worth monitoring |
+| > 200 | × 1.0 | Full penalty — walks compounding a hit problem |
+
+Example: P_BB=60, P_H=120 → H+BB=180 → penalty = −1.5 × 0.50 = **−0.75**. Same walk count with P_H=175 → H+BB=235 → full **−1.5**.
+
 **SP Quality Bonus:**
 
 Elite starters receive a bonus based purely on STUFF grade — END is already doing its job as the SP/RP gate and adding it to the bonus would double-count durability while unfairly penalizing quality pitchers who are slightly below the workhorse threshold:
