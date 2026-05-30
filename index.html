@@ -522,19 +522,18 @@ function gradeVal(val, bins, grades) {
 }
 
 // Continuous grade interpolation — avoids hard cliff at bin edges
-// Used for W_OPS where a 0.001 difference shouldn't mean 5 grade points
+// The top bin is NOT smoothed — truly elite values get the top grade flat
+// (smoothing the top would pull e.g. W_OPS=0.573 down from 80 toward 75)
 function gradeSmooth(val, bins, grades) {
   if (val === null || val === undefined || isNaN(val)) return null;
   val = +val;
-  if (val <= bins[0]) return grades[0];
+  if (val <= bins[1]) return grades[0];  // top bin: flat grade, no smoothing
   if (val >= bins[bins.length-1]) return grades[grades.length-1];
-  for (let i = 0; i < bins.length - 1; i++) {
+  for (let i = 1; i < bins.length - 1; i++) {
     if (val > bins[i] && val <= bins[i+1]) {
-      // t=0 at left edge (just above bins[i]), t=1 at right edge (bins[i+1])
       const t = (val - bins[i]) / (bins[i+1] - bins[i]);
       const gLeft  = grades[i];
       const gRight = (i+1 < grades.length) ? grades[i+1] : grades[i];
-      // Interpolate: at left edge of bin get gLeft, at right edge get gRight
       return gLeft + t * (gRight - gLeft);
     }
   }
