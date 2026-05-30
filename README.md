@@ -195,7 +195,20 @@ This gives the true expected OPS on any randomly selected pitch, accounting for 
 | 35 | < 0.908 | Top 90% |
 | 30 | ≥ 0.908 | Bottom 10% |
 
-**Endurance (END) as a gate only:**
+**SP Quality Bonus:**
+
+Elite starters receive a bonus based purely on STUFF grade — END is already doing its job as the SP/RP gate and adding it to the bonus would double-count durability while unfairly penalizing quality pitchers who are slightly below the workhorse threshold:
+
+| STUFF Grade | Bonus | Profile |
+|-------------|-------|---------|
+| ≥ 75 | +3.0 | True ace — top 0.5% pitch quality |
+| ≥ 70 | +2.0 | Solid #2 starter — top 5% pitch quality |
+| ≥ 65 | +1.0 | Quality starter — top 10% pitch quality |
+| < 65 | 0 | Average or below — no bonus |
+
+Relievers never receive the SP quality bonus regardless of grades.
+
+**Why this bonus exists:** Without it, a pitcher's OVERALL equals his raw STUFF grade with no stacking, while hitters can accumulate up to +10 points in bonuses (positional premium + power + leadoff + bat hand). The SP quality bonus brings elite starters into proper balance with elite hitters at the top of the rankings.
 - END ≥ 5.0 → Starter-eligible, no adjustment
 - END < 5.0 → Reliever penalty (−3 points)
 
@@ -225,21 +238,23 @@ Any pitcher — starter or reliever — with K/BB > 4.0 receives a +2.0 bonus. T
 
 ## Grade Scale
 
-All grades use a **20–75 scale** (matching traditional scouting 20-80 grades minus the very top tier, which is reserved for generational MLB players rather than prospects):
+All grades use the standard scouting **20–80 scale**:
 
-| Grade | Meaning |
-|-------|---------|
-| 80 | Reserved for active ML superstars in the all-time tier |
-| 75 | Elite — top 1–3% of prospect pool |
-| 70 | Plus-plus — top 5–8% |
-| 65 | Plus — top 10–15% |
-| 60 | Above average — top 25% |
-| 55 | Solid average |
-| 50 | Average |
-| 45 | Below average |
-| 40 | Fringe |
-| 30 | Poor |
-| 20 | Well below average |
+| Grade | Meaning | Pool percentile (approx) |
+|-------|---------|--------------------------|
+| 80 | Elite — top 1% of prospect pool | 99th+ |
+| 75 | Plus-plus — top 2–3% | 97th–99th |
+| 70 | Plus — top 5% | 95th–97th |
+| 65 | Above average | 85th–95th |
+| 60 | Solid average+ | 75th–85th |
+| 55 | Average | 60th–75th |
+| 50 | Below average | 40th–60th |
+| 45 | Fringe | 25th–40th |
+| 40 | Poor | 10th–25th |
+| 35 | Well below average | 3rd–10th |
+| 20–30 | Bottom of pool | Bottom 3% |
+
+**Why the full 80 is available:** In traditional prospect evaluation, grades are capped at 75 for prospects to leave headroom for development — a player rated 75 today might grow into an 80. In a sim, edits are fixed. A player with a .420 OBP edit will always have a .420 OBP edit. There is no development ceiling to protect, so a player whose grades genuinely put him in the top 1% of the prospect pool receives the 80 he deserves.
 
 Bins are calibrated to the **full non-ML prospect population** so grades are consistent year over year regardless of which season's data is uploaded.
 

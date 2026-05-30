@@ -833,7 +833,17 @@ function scorePitcher(r) {
   // Elite K/BB bonus: truly outlier command (top ~3% of pool, K/BB>4.0)
   const eliteKBBBonus = kbb > 4.0 ? 2.0 : 0;
 
-  const overall = stuff + endMod + bbPen + eliteCloserBonus + eliteBPBonus + eliteKBBBonus;
+  // SP quality bonus — rewards elite starters based purely on pitch quality
+  // END is already a gate (≥5.0 = starter eligible); adding it to the bonus
+  // would double-count durability and unfairly penalize quality short starters
+  const spBonus = isSP
+    ? (stuff >= 75 ? 3.0
+      : stuff >= 70 ? 2.0
+      : stuff >= 65 ? 1.0
+      : 0)
+    : 0;
+
+  const overall = stuff + endMod + bbPen + eliteCloserBonus + eliteBPBonus + eliteKBBBonus + spBonus;
 
   return {
     rank:0, name:`${r.Last}, ${r.First}`, first:r.First, last:r.Last,
@@ -845,7 +855,7 @@ function scorePitcher(r) {
     obp:null, ops:null, hr:null, bb:null, so:null, run:null,
     posBonus:null, powBonus:null, loBonus:null, batBonus:null, htPen:null,
     wops:wOpsAvg, end, kbb, isSP, p_bb,
-    eliteCloserBonus, eliteBPBonus, eliteKBBBonus, bbPen,
+    eliteCloserBonus, eliteBPBonus, eliteKBBBonus, bbPen, spBonus,
     p_so:+(r.P_SO||0), p_bb:+(r.P_BB||0), p_gb:+(r.P_GB||0)
   };
 }
@@ -998,6 +1008,8 @@ function renderTable() {
       bonuses += r.isSP
         ? `<span class="pill pill-sp" title="Starter eligible (END≥5.0)">SP</span>`
         : `<span class="pill pill-rp" title="Reliever only (END<5.0)">RP-3</span>`;
+      if (r.spBonus > 0)
+        bonuses += `<span class="pill pill-sp" title="SP quality bonus: elite workhorse starter">ACE+${r.spBonus.toFixed(0)}</span>`;
       if (r.eliteCloserBonus > 0)
         bonuses += `<span class="pill pill-pow" title="Elite closer: W_OPS<.660 + K/BB>3.0">CLOSER+2</span>`;
       if (r.eliteBPBonus > 0)
