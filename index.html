@@ -620,11 +620,12 @@ function runModel() {
         proMap[key] = +(r['Pro Years']||0);
       });
 
-      // Filter prospects: Pro Years == 0, not ML
+      // Filter prospects: Pro Years == 0 AND age 26 or younger
+      // Level doesn't matter — broke camp with ML club != ML experience
       const prospects = rosterData.filter(r => {
         const key = (r.First||'').trim()+'|'+(r.Last||'').trim();
         const py = proMap[key] ?? 0;
-        return py === 0 && r.Level !== 'ML' && r.Level !== '';
+        return py === 0 && +(r.Age||0) <= 25 && r.Level !== '';
       });
 
       // Compute position range means/stds for hitters
