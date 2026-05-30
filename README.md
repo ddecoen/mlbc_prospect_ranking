@@ -203,8 +203,9 @@ Elite starters receive a bonus based purely on STUFF grade — END is already do
 |-------------|-------|---------|
 | ≥ 75 | +3.0 | True ace — top 0.5% pitch quality |
 | ≥ 70 | +2.0 | Solid #2 starter — top 5% pitch quality |
-| ≥ 65 | +1.0 | Quality starter — top 10% pitch quality |
-| < 65 | 0 | Average or below — no bonus |
+| ≥ 65 | +1.5 | Quality starter — top 10% pitch quality |
+| ≥ 60 | +1.0 | Good starter — top ~20% pitch quality |
+| < 60 | 0 | Average or below — no bonus |
 
 Relievers never receive the SP quality bonus regardless of grades.
 
