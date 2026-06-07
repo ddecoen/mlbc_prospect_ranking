@@ -67,6 +67,20 @@ The model separates hitters and pitchers completely, scoring each against the fu
 
 A player with B_H=155 cannot sustain a high OBP regardless of what his edit splits say. B_H=170+ gets full credit.
 
+**K/BB credibility discount:**
+
+Plate discipline earns its full value only when backed by power or contact. A pure walk rate with no power and a poor hit tool is a survival skill, not an offensive weapon. The effective K/BB grade is multiplied by a credibility factor before scoring:
+
+`kbbG_effective = kbbG × kbbCredibility`
+
+| Condition | Credibility | Rationale |
+|-----------|-------------|-----------|
+| XBH grade ≥ 45 AND B\_H ≥ 160 | 1.00 | Real hitter — full credit |
+| XBH grade ≥ 45 OR B\_H ≥ 160 | 0.85 | One dimension missing — slight discount |
+| XBH grade < 45 AND B\_H < 160 | 0.65 | No power, no hit tool — walks are survival, not a weapon |
+
+Shows as a  or  red pill in the BONUSES column when discounted.
+
 **Hit tool floor penalty (flat, applied to final overall):**
 
 | B\_H  | Penalty |

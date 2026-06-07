@@ -691,8 +691,19 @@ function scoreHitter(r) {
   const contactFactor = bH >= 170 ? 1.0 : Math.min(1.0, bH / 170);
   const obpG = Math.round((obpG_raw||0) * contactFactor);
 
+  // K/BB credibility discount — plate discipline earns full value only when
+  // backed by power (XBH) or contact (hit tool). A pure walk rate with no
+  // power and a poor hit tool is a survival skill, not an offensive weapon.
+  // XBH grade >= 45 AND B_H >= 160 → full credit (1.00)
+  // XBH grade >= 45 OR  B_H >= 160 → one dimension missing (0.85)
+  // XBH grade <  45 AND B_H <  160 → no power, no hit tool (0.65)
+  const kbbCredibility = ((xbhG||0) >= 45 && bH >= 160) ? 1.00
+                       : ((xbhG||0) >= 45 || bH >= 160) ? 0.85
+                       : 0.65;
+  const kbbGeff = (kbbG||0) * kbbCredibility;
+
   // HIT: OBP 40%, XBH 38%, KBB 15%, GB% 4%, Pull 3%
-  const hit = (obpG||0)*.40 + (xbhG||0)*.38 + (kbbG||0)*.15 + (gbG||0)*.04 + (pullG||0)*.03;
+  const hit = (obpG||0)*.40 + (xbhG||0)*.38 + kbbGeff*.15 + (gbG||0)*.04 + (pullG||0)*.03;
 
   // ── FLD SCORE ───────────────────────────────────────────────
   // Unplayable glove → zero FLD regardless of range/arm scores
@@ -782,7 +793,7 @@ function scoreHitter(r) {
     type:'H', pos, bat, throw:throw_, team:r.Team, level:r.Level,
     age:+r.Age||0, isSP:false,
     overall, hit, fld, stuff:null,
-    obpG, xbhG, kbbG, gbG, pullG, runG, armG, fldG,
+    obpG, xbhG, kbbG, kbbCredibility, gbG, pullG, runG, armG, fldG,
     obp, ops, hr:+r.B_HR||0, bb:+r.B_BB||0, so:+r.B_SO||0, run,
     posBonus, powBonus, loBonus, batBonus, htPen, noPosP,
     playable, generational, fldPct, fldScoredAs,
@@ -998,6 +1009,7 @@ function renderTable() {
       if (r.loBonus > 0)   pills += `<span class="pill pill-lo"  title="Leadoff bonus">LO+${r.loBonus.toFixed(1)}</span>`;
       if (r.batBonus > 0)  pills += `<span class="pill pill-bat" title="Bat hand bonus">BAT+${r.batBonus.toFixed(1)}</span>`;
       if (r.htPen < 0)     pills += `<span class="pill pill-pen" title="Hit tool penalty">HIT${r.htPen}</span>`;
+      if (r.kbbCredibility < 1.0) pills += `<span class="pill pill-pen" title="K/BB credibility discount (${Math.round(r.kbbCredibility*100)}%)">KBB×${r.kbbCredibility.toFixed(2)}</span>`;
       if (r.noPosP < 0)    pills += `<span class="pill pill-nopos" title="No defensive home penalty">NO-POS${r.noPosP.toFixed(1)}</span>`;
       if (r.generational)  pills += `<span class="pill pill-pow" title="Generational bat exception (.970-.974 glove)">GEN-BAT</span>`;
     } else {
