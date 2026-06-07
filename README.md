@@ -2,7 +2,7 @@
 
 A browser-based prospect ranking engine for the **Minor League Baseball Club (MLBC)** simulation game. Upload your league export files and get instant, data-driven prospect rankings — no server, no Python, no installs required.
 
-🔗 **Live app:** [https://ddecoen.github.io/mlbc_prospect_ranking](https://ddecoen.github.io/mlbc_prospect_ranking)
+🔗 **Live app:** https://ddecoen.github.io/mlbc_prospect_ranking
 
 ---
 
@@ -11,24 +11,26 @@ A browser-based prospect ranking engine for the **Minor League Baseball Club (ML
 Each prospect row displays three stacked grade bars, styled to match the sim's own player card layout:
 
 **Hitters**
-| Bar | Color | What it measures |
-|-----|-------|-----------------|
-| FLD | Purple | Fielding score — position-weighted range, arm, speed, hands |
-| HIT | Green | Offensive score — OBP, XBH, K/BB, GB%, Pull |
-| OVR | Gold | Overall (90% HIT + 10% FLD + all bonuses) |
+
+| Bar | Color  | What it measures                                             |
+|-----|--------|--------------------------------------------------------------|
+| FLD | Purple | Fielding score — position-weighted range, arm, speed, hands  |
+| HIT | Green  | Offensive score — OBP, XBH, K/BB, GB%, Pull                 |
+| OVR | Gold   | Overall (90% HIT + 10% FLD + all bonuses)                   |
 
 **Pitchers**
-| Bar | Color | What it measures |
-|-----|-------|-----------------|
-| END | Red | Raw endurance value (shown as the actual END number, not a grade) |
-| STF | Blue | Stuff score — pure W_OPS on the 20-80 scale |
-| OVR | Gold | Overall (STUFF + END gate + all bonuses/penalties) |
 
-All bars fill proportionally on the **20–80 grade scale** — a grade of 70 fills ~83% of the bar, grade of 50 fills ~50%, grade of 30 fills ~17%. This makes it easy to scan down the OVR column and compare prospects at a glance without reading individual numbers.
+| Bar | Color | What it measures                                                  |
+|-----|-------|-------------------------------------------------------------------|
+| END | Red   | Raw endurance value (shown as the actual END number, not a grade) |
+| STF | Blue  | Stuff score — pure W\_OPS on the 20-80 scale                     |
+| OVR | Gold  | Overall (STUFF + END gate + all bonuses/penalties)                |
 
-The **GRADES** column shows the underlying component grades (OBP, XBH, K/BB for hitters; WOPS, KBB for pitchers). The **BONUSES** column shows pills for all active adjustments — positional premiums, power/leadoff bonuses, SP/RP status, elite closer/BP/K/BB bonuses, walk penalties, and hit tool penalties.
+All bars fill proportionally on the **20–80 grade scale**. The **GRADES** column shows underlying component grades. The **BONUSES** column shows pills for all active adjustments.
 
+---
 
+## How to Use
 
 1. Export two CSV files from your MLBC sim:
    - `League_Roster_XXXX.csv` — full league player roster with all edits/grades
@@ -40,9 +42,11 @@ The **GRADES** column shows the underlying component grades (OBP, XBH, K/BB for 
 
 ## Model Philosophy
 
-The model is built around one core principle: **grades are grades**. A player's edits represent their true ability ceiling regardless of what level they play at. Level only tells you *when* you'll get the value, not *how much* value there is. No level-based adjustments are applied to scores.
+The model is built around one core principle: **grades are grades**. A player's edits represent their true ability ceiling regardless of what level they play at. No level-based adjustments are applied to scores.
 
 The model separates hitters and pitchers completely, scoring each against the full non-ML prospect pool.
+
+**Prospect definition:** Pro Years = 0 AND Age ≤ 25. Level is irrelevant — a player who broke camp with the ML club but has never played a full ML season is still a prospect.
 
 ---
 
@@ -50,97 +54,99 @@ The model separates hitters and pitchers completely, scoring each against the fu
 
 ### HIT Score (90% of overall)
 
-The offensive grade is built from five components on a **20–75 scale**, calibrated to the full non-ML prospect population:
+| Component  | Weight | Stat                                 |
+|------------|--------|--------------------------------------|
+| OBP Grade  | 40%    | `(OBP_vL × 0.25) + (OBP_vR × 0.75)` |
+| XBH Grade  | 38%    | `HR×4 + 3B×3 + 2B×2`                |
+| K/BB Grade | 15%    | `B_SO / B_BB`                        |
+| GB% Grade  | 4%     | `B_GB`                               |
+| Pull Grade | 3%     | `Pull%`                              |
 
-| Component | Weight | Stat | Logic |
-|-----------|--------|------|-------|
-| OBP Grade | 40% | `(OBP_vL × 0.25) + (OBP_vR × 0.75)` | On-base is the most predictive offensive rate stat |
-| XBH Grade | 38% | `HR×4 + 3B×3 + 2B×2` | Extra base value mirrors the sim's own fantasy formula |
-| K/BB Grade | 15% | `B_SO / B_BB` | Plate discipline — lower is better |
-| GB% Grade | 4% | `B_GB` | Small power-style signal — low GB% = fly ball tendency |
-| Pull Grade | 3% | `Pull%` | Small pull-power signal |
-
-**Why GB% and Pull are small weights:** Early versions of the model weighted these at 12% and 8% respectively. This incorrectly penalized legitimate contact/gap hitters — a player who hits .845 OPS to all fields with a high GB% would score *lower* than a .803 OPS pull hitter. GB% and Pull are style signals, not outcome signals. OBP and XBH already capture the outcomes; GB% and Pull just add a small bonus for pull-power profiles without punishing other approaches.
-
-**Hit Tool Floor — Contact Credibility:**
-
-A poor hit tool creates two separate problems, both now modeled explicitly:
-
-**1. Contact-credibility discount on OBP grade.** A player with B_H=155 cannot sustain a .390 OBP regardless of what his edit splits say — the splits assume a level of contact he can't produce. The OBP grade is discounted proportionally:
-
+**Contact-credibility discount on OBP:**
 `OBP_G = OBP_G_raw × min(1.0, B_H / 170)`
 
-So B_H=155 → OBP grade multiplied by 0.912 (9% discount). B_H=140 → 18% discount. B_H=170+ → no discount.
+A player with B_H=155 cannot sustain a high OBP regardless of what his edit splits say. B_H=170+ gets full credit.
 
-**2. Flat hit tool penalty** applied to the final overall score:
+**Hit tool floor penalty (flat, applied to final overall):**
 
-| B_H | Penalty | Notes |
-|-----|---------|-------|
-| ≥ 170 | 0 | No penalty — acceptable contact |
-| ≥ 160 | −1 | Slightly below average |
-| ≥ 150 | −3 | Genuine contact risk |
-| ≥ 140 | −5 | Significant red flag |
-| < 140 | −8 | Cannot profile as a hitter |
-
-The old model used a single -1 penalty for B_H=155, which was far too lenient. A walk-heavy, no-contact player (the "Barry Bonds eye with no contact ability" profile) would score artificially high because the OBP grade trusted edit splits that the hit tool makes impossible to sustain in the sim.
+| B\_H  | Penalty |
+|-------|---------|
+| ≥ 170 | 0       |
+| ≥ 160 | −1      |
+| ≥ 150 | −3      |
+| ≥ 140 | −5      |
+| < 140 | −8      |
 
 ### FLD Score (10% of overall)
 
-Defense is real but worth approximately 10% of a prospect's value. The sim's fantasy scoring is entirely offensive, but good defense helps pitchers and prevents runs.
+Each position uses position-appropriate defensive weights with range z-scored within position group.
 
-Each position uses **position-appropriate defensive weights** with range z-scored within position group (so a 1B's range is compared to other 1Bs, not shortstops):
+**Throw hand constraint:** Left-handed throwers cannot play meaningful infield positions other than 1B. LH throwers coded at 2B/3B/SS use OF range as their range component.
 
-| Position | Primary Weight | Secondary |
-|----------|---------------|-----------|
-| C | Arm 65% | Hands 25% |
-| SS | Range 40% | Arm 25%, Run 20% |
-| 2B | Range 40% | Arm 25% |
-| 3B | Arm 45% | Range 30% |
-| CF | Range 40% | Run 35% |
-| RF | Arm 45% | Range 30% |
-| LF | Range 40% | Run 30% |
-| 1B | Hands 55% | Range 25% |
+### Fielding Playability Rules
 
-**Throw hand constraint:** Left-handed throwers cannot play meaningful infield positions other than 1B. LH throwers coded at 2B/3B/SS use OF range as their range component, which correctly penalizes the positional mismatch.
+A glove below the playability floor is a real roster problem — a player with no defensive home has significantly reduced value even with a strong bat.
 
-### Bonuses (additive to overall)
+**Fielding % floor: .975**
 
-These bonuses recognize archetypes the sim rewards but raw grades don't fully capture:
+| Fielding % | Result |
+|------------|--------|
+| ≥ .975 | Playable — normal FLD scoring |
+| .970–.974 + OPS ≥ 1.000 | **Generational bat exception** — plays trained position normally, full positional premium, shows `GEN-BAT` pill |
+| .970–.974 + OPS < 1.000 | Unplayable |
+| < .970 | Unplayable — no exceptions |
+| Catcher (any %) | Arm strength gates the premium, not fielding % |
 
-| Bonus | Trigger | Points | Rationale |
-|-------|---------|--------|-----------|
-| **Positional Value** | C, SS, CF, 2B, 3B, RF, LF, 1B | +3.0 to −0.5 | Scarce defensive positions are worth more at equivalent offensive output |
-| **True Power** | OPS ≥ 1.050 | +3.0 | Generational bat — top 0.3% of prospect pool |
-| | OPS ≥ 1.000 | +1.5 | Elite power prospect |
-| | OPS ≥ 0.950 | +0.5 | Plus power |
-| **True Leadoff** | OBP ≥ 0.390 + Run ≥ 5.5 | +2.0 | Both OBP and speed elite simultaneously |
-| | OBP ≥ 0.380 + Run ≥ 5.0 | +1.0 | Legitimate leadoff profile |
-| **Bat Hand** | Switch | +1.0 | Platoon advantage every at-bat |
-| | Left-handed | +0.5 | Slight platoon advantage vs. majority RHP |
+**When unplayable:**
+- FLD grade forced to 0
+- Positional premium stripped entirely
+- No defensive home penalty applied (see below)
+- Details column shows `FLD%:X.XXX⚠` in red
 
-**Positional value premiums:**
+### No Defensive Home Penalty
 
-Premium positions (CF, SS, C) have **athleticism-conditional bonuses** — the premium only applies if the player can actually man the position at an above-average level.
+Applied to all unplayable-glove non-catchers. A player with no position has meaningfully reduced value — they can only contribute via DH, and teams cannot build around a one-dimensional bat.
 
-For **C and SS**, the bonus is additionally **scaled by the positional training rating** (F_C and F_SS in the roster file, on a 0–1 scale). A catcher at F_C=0.51 gets 51% of the bonus — rewarding owners who properly train players at premium positions and correctly reflecting that an untrained catcher is a liability regardless of his arm. **CF uses speed as the gate** since speed is fixed in the sim and cannot be trained.
+| OPS / OBP condition | Penalty |
+|---------------------|---------|
+| OPS ≥ .950 | 0 — elite bat, can DH and contribute |
+| OPS ≥ .850 | −1.5 |
+| OPS ≥ .750 OR OBP ≥ .380 | −3.0 — some tools, no power profile |
+| Below all thresholds | −5.0 — nothing to offer without a position |
 
-| Position | Condition | Raw Bonus | Scaling |
-|----------|-----------|-----------|---------|
-| C | Arm ≥ 8.0 | +3.0 | × F_C (0–1) — elite arm, top 25% of catchers |
-| C | Arm ≥ 6.5 | +2.0 | × F_C (0–1) — good arm, real value |
-| C | Arm ≥ 5.0 | +1.0 | × F_C (0–1) — fringe, modest premium |
-| C | Arm < 5.0 | 0 | — bat must carry it; defense is a liability |
-| SS | IF_Rng ≥ 5.0 | +2.0 | × F_SS (0–1) |
-| SS | IF_Rng ≥ 4.0 | +1.0 | × F_SS (0–1) |
-| SS | IF_Rng < 4.0 | +0.5 | × F_SS (0–1) |
-| CF | Run ≥ 5.5 | +1.5 | No scaling (speed fixed) |
-| CF | Run ≥ 4.5 | +0.75 | No scaling (speed fixed) |
-| CF | Run < 4.5 | 0 | — |
-| 2B / 3B | — | +0.5 | No scaling |
-| RF / LF | — | 0 | — |
-| 1B | — | −0.5 | — |
+Shows as `NO-POS−X.X` pill in the BONUSES column.
 
-Example: Frank Prater has Arm=8.74 (raw bonus = +3.0, elite tier) but F_C=0.51 → actual bonus = 3.0 × 0.51 = **+1.5**. Once trained to F_C=1.0, he earns the full +3.0 — the true unicorn tier. Kevin Diaz (Arm=4.42, fully trained at F_C=1.0) gets **+0** — a weak-armed catcher adds no positional premium regardless of training.
+### Positional Premiums
+
+Premium positions (CF, SS, C) have athleticism-conditional bonuses. C and SS bonuses are additionally scaled by positional training rating (F_C, F_SS on 0–1 scale).
+
+| Position | Condition     | Raw Bonus | Scaling |
+|----------|---------------|-----------|---------|
+| C        | Arm ≥ 8.0     | +3.0      | × F\_C  |
+| C        | Arm ≥ 6.5     | +2.0      | × F\_C  |
+| C        | Arm ≥ 5.0     | +1.0      | × F\_C  |
+| C        | Arm < 5.0     | 0         | —       |
+| SS       | IF\_Rng ≥ 5.0 | +2.0      | × F\_SS |
+| SS       | IF\_Rng ≥ 4.0 | +1.0      | × F\_SS |
+| SS       | IF\_Rng < 4.0 | +0.5      | × F\_SS |
+| CF       | Run ≥ 5.5     | +1.5      | —       |
+| CF       | Run ≥ 4.5     | +0.75     | —       |
+| CF       | Run < 4.5     | 0         | —       |
+| 2B / 3B  | —             | +0.5      | —       |
+| RF / LF  | —             | 0         | —       |
+| 1B       | —             | −0.5      | —       |
+
+### Other Bonuses
+
+| Bonus        | Trigger                          | Points |
+|--------------|----------------------------------|--------|
+| True Power   | OPS ≥ 1.050                      | +3.0   |
+| True Power   | OPS ≥ 1.000                      | +1.5   |
+| True Power   | OPS ≥ 0.950                      | +0.5   |
+| True Leadoff | OBP ≥ 0.390 + Run ≥ 5.5          | +2.0   |
+| True Leadoff | OBP ≥ 0.380 + Run ≥ 5.0          | +1.0   |
+| Bat Hand     | Switch                           | +1.0   |
+| Bat Hand     | Left                             | +0.5   |
 
 ---
 
@@ -148,169 +154,62 @@ Example: Frank Prater has Arm=8.74 (raw bonus = +3.0, elite tier) but F_C=0.51 �
 
 ### STUFF Score
 
-The pitcher model is built on one core insight: **in a sim with fixed pitch probability distributions, W_OPS is a complete and sufficient quality metric.**
+Pure W\_OPS — usage-weighted OPS against across all pitches. Complete pitch quality signal that already captures best pitch, worst pitch, mix, and command simultaneously.
 
-The sim engine selects pitches randomly according to each pitcher's usage percentages (`P1_Qual` through `P6_Qual`). You cannot instruct your pitcher to throw his fastball more often — the probabilities are fixed. This means:
+**Batter handedness weights:**
+- LHP faces 76.4% RHH → wR=0.764, wL=0.236
+- RHP faces 64.7% RHH → wR=0.647, wL=0.353
 
-- The **best pitch** is already weighted into W_OPS by how often the sim calls it
-- The **worst pitch** is already weighted into W_OPS by how often the sim calls it
-- **Pitch count** doesn't matter — a 3-pitch pitcher who dominates with all three is equal to a 5-pitch pitcher with the same W_OPS
-- **Top-2 or bottom-1 metrics** double-count what W_OPS already captures
+**W\_OPS grade bins:**
 
-Walks are already captured in per-pitch OBP against, which flows directly into W_OPS. K/BB only appears as a **bonus for true outliers** — it does not penalize anyone.
+| Grade | W\_OPS threshold |
+|-------|-----------------|
+| 80    | ≤ 0.575         |
+| 75    | ≤ 0.595         |
+| 70    | ≤ 0.615         |
+| 65    | ≤ 0.640         |
+| 62    | ≤ 0.660         |
+| 58    | ≤ 0.680         |
+| 54    | ≤ 0.710         |
+| 50    | ≤ 0.745         |
+| 45    | ≤ 0.790         |
+| 40    | ≤ 0.850         |
+| 35    | > 0.850         |
 
-| Component | Weight | Stat | Logic |
-|-----------|--------|------|-------|
-| W_OPS | 100% | Usage-weighted OPS against across all pitches | Complete pitch quality signal — captures best, worst, mix, and command simultaneously |
+Values ≤ 0.575 get flat grade 80 (no smoothing — Koufax tier).
 
-**Why K/BB is not in STUFF:** Walks are already reflected in per-pitch OBP against — a pitcher who walks batters has a worse W_OPS as a direct result. Penalizing K/BB on top of W_OPS double-counts the same walks and systematically underrates pitchers who get outs without strikeouts: groundball artists, soft-tossers, and deception-based arms. In a sim where a strikeout and a groundout are both just outs, K/BB is not an independent quality signal on top of W_OPS. A pitcher like Charlie Blanco — three pitches all under .720 OPS, 65% GB rate — should not be ranked at 555th because his K:BB ratio is unflattering. His pitch outcomes are what matter.
+### END Gate
 
-**How W_OPS is computed:**
+- END ≥ 5.0 → SP, no adjustment
+- END < 5.0 → −3 (reliever penalty)
 
-W_OPS uses the actual batter handedness distribution from the league, not a naive 50/50 split:
+### Walk Penalty (context-aware)
 
-- **LHP** faces 76.4% RHH (R batters + switch hitters batting right vs LHP)
-- **RHP** faces 64.7% RHH
+| P\_BB | Base Penalty |
+|-------|-------------|
+| ≥ 55  | −1.0        |
+| ≥ 60  | −1.5        |
+| ≥ 65  | −1.75       |
+| ≥ 70  | −2.0        |
+| > 75  | −3.0        |
 
-For each pitch: `OPS_weighted = OPS_vL × handedness_weight_L + OPS_vR × handedness_weight_R`
+Multiplied by context factor: H+BB < 170 → ×0.25 / H+BB 170–200 → ×0.50 / H+BB > 200 → ×1.0
 
-Then: `W_OPS = Σ(pitch_usage × OPS_weighted)` across all pitches
+### Pitcher Bonuses (no bonuses when STUFF = 80)
 
-This gives the true expected OPS on any randomly selected pitch, accounting for the actual distribution of batter types the pitcher will face.
-
-**Why not GB%?** Ground ball rate is already implicit in W_OPS — a ground ball specialist allows fewer hits and fewer home runs, which shows up directly in his pitch OPS splits. Adding GB% as a separate component double-counts the same information while unfairly disadvantaging strikeout pitchers who achieve the same W_OPS through a different approach.
-
-**Why not K rate separately?** Strikeouts are the best possible outcome (no baserunner, no defense required), but their value is already reflected in the per-pitch OPS against. A pitcher who strikes out 200 batters per 600 has a lower OPS against than one who strikes out 80, all else equal.
-
-**W_OPS grade scale is percentile-anchored** to the actual non-ML prospect pitcher pool — not arbitrary absolute thresholds. This means grade 65 genuinely means top 10%, grade 70 means top 5%, and so on. Early versions used fixed OPS thresholds (e.g. grade 60 = W_OPS < 0.675) which compressed the entire top 5-15% of pitchers into two adjacent grades, causing quality arms to appear "below average" on the scale. The current bins:
-
-| Grade | W_OPS threshold | Pool percentile |
-|-------|----------------|-----------------|
-| 80 | < 0.638 | Top 1% |
-| 75 | < 0.659 | Top 3% |
-| 70 | < 0.678 | Top 5% |
-| 65 | < 0.703 | Top 10% |
-| 60 | < 0.719 | Top 15% |
-| 55 | < 0.736 | Top 25% |
-| 50 | < 0.764 | Top 40% |
-| 45 | < 0.811 | Top 60% |
-| 40 | < 0.855 | Top 75% |
-| 35 | < 0.908 | Top 90% |
-| 30 | ≥ 0.908 | Bottom 10% |
-
-**Walk Penalty (context-aware):**
-
-Extreme walk rates hurt real roster value, but the penalty is discounted when total baserunners (H + BB) are still under control. A pitcher who walks 60 batters but only allows 120 hits (H+BB=180) is a very different problem from one who walks 60 and allows 175 hits (H+BB=235).
-
-Base penalty by walk count:
-
-| P_BB | Base Penalty |
-|------|-------------|
-| ≥ 55 | −1.0 |
-| ≥ 60 | −1.5 |
-| ≥ 65 | −1.75 |
-| ≥ 70 | −2.0 |
-| > 75 | −3.0 |
-
-Context multiplier applied to the base penalty:
-
-| H + BB total | Multiplier | Rationale |
-|-------------|-----------|-----------|
-| < 170 | × 0.25 | Walks acceptable — strong hit suppression compensates |
-| 170–200 | × 0.50 | Manageable — worth monitoring |
-| > 200 | × 1.0 | Full penalty — walks compounding a hit problem |
-
-Example: P_BB=60, P_H=120 → H+BB=180 → penalty = −1.5 × 0.50 = **−0.75**. Same walk count with P_H=175 → H+BB=235 → full **−1.5**.
-
-**SP Quality Bonus:**
-
-Elite starters receive a bonus based purely on STUFF grade — END is already doing its job as the SP/RP gate and adding it to the bonus would double-count durability while unfairly penalizing quality pitchers who are slightly below the workhorse threshold:
-
-| STUFF Grade | Bonus | Profile |
-|-------------|-------|---------|
-| ≥ 75 | +3.0 | True ace — top 0.5% pitch quality |
-| ≥ 70 | +2.0 | Solid #2 starter — top 5% pitch quality |
-| ≥ 65 | +1.5 | Quality starter — top 10% pitch quality |
-| ≥ 60 | +1.0 | Good starter — top ~20% pitch quality |
-| < 60 | 0 | Average or below — no bonus |
-
-Relievers never receive the SP quality bonus regardless of grades.
-
-**Why this bonus exists:** Without it, a pitcher's OVERALL equals his raw STUFF grade with no stacking, while hitters can accumulate up to +10 points in bonuses (positional premium + power + leadoff + bat hand). The SP quality bonus brings elite starters into proper balance with elite hitters at the top of the rankings.
-- END ≥ 5.0 → Starter-eligible, no adjustment
-- END < 5.0 → Reliever penalty (−3 points)
-
-The penalty was reduced from −5 to −3 because some high-quality relievers have genuine roster value as swingmen or high-leverage arms. A −5 gate was washing out pitchers who belong in the top 200 regardless of role.
-
-**Elite Closer Bonus (+2.0):**
-
-A reliever with true ace-level pitch quality AND elite command is a genuine asset regardless of endurance. If a pitcher meets all three conditions:
-- END < 5.0 (reliever role)
-- W_OPS < 0.660 (top ~2.5% of the prospect pitcher pool)
-- K/BB > 3.0 (elite command)
-
-…he receives a +2.0 bonus. This partially offsets the −3 reliever penalty, netting −1 overall — correctly placing an elite closer just slightly below an equivalent starter.
-
-**Elite BP Arm Bonus (+2.0):**
-
-A swingman/setup arm in the END 4.0–4.9 tier with quality stuff and decent command also receives a +2.0 bonus:
-- END 4.0–4.9 (swingman tier — not a true closer, not a starter)
-- W_OPS ≤ 0.680 (top ~5% of the prospect pitcher pool)
-- K/BB > 2.5 (sufficient command)
-
-**Elite K/BB Bonus (+2.0):**
-
-Any pitcher — starter or reliever — with K/BB > 4.0 receives a +2.0 bonus. This is the top ~3% of the prospect pool and represents truly elite command that is meaningful on top of W_OPS (since K/BB is not otherwise penalized in STUFF).
-
----
-
-## Grade Scale
-
-All grades use the standard scouting **20–80 scale**:
-
-| Grade | Meaning | Pool percentile (approx) |
-|-------|---------|--------------------------|
-| 80 | Elite — top 1% of prospect pool | 99th+ |
-| 75 | Plus-plus — top 2–3% | 97th–99th |
-| 70 | Plus — top 5% | 95th–97th |
-| 65 | Above average | 85th–95th |
-| 60 | Solid average+ | 75th–85th |
-| 55 | Average | 60th–75th |
-| 50 | Below average | 40th–60th |
-| 45 | Fringe | 25th–40th |
-| 40 | Poor | 10th–25th |
-| 35 | Well below average | 3rd–10th |
-| 20–30 | Bottom of pool | Bottom 3% |
-
-**Why the full 80 is available:** In traditional prospect evaluation, grades are capped at 75 for prospects to leave headroom for development — a player rated 75 today might grow into an 80. In a sim, edits are fixed. A player with a .420 OBP edit will always have a .420 OBP edit. There is no development ceiling to protect, so a player whose grades genuinely put him in the top 1% of the prospect pool receives the 80 he deserves.
-
-Bins are calibrated to the **full non-ML prospect population** so grades are consistent year over year regardless of which season's data is uploaded.
-
----
-
-## Why These Decisions
-
-**No level adjustment:** The MLBC edits represent a player's true ability grades — they do not change as a player moves from A-ball to AAA. A 19-year-old in A-ball with elite grades should not be ranked below a 24-year-old in AAA with average grades just because he hasn't been promoted yet. Level tells you *when* you get the value. The ranking tells you *how much* value there is.
-
-**90/10 bat/glove for hitters:** Analysis of the sim's fantasy scoring formula (1B=1, 2B=2, 3B=3, HR=4, BB=1, SO=−1) shows that offensive production drives virtually all measurable value. The run value difference between elite and poor defense is approximately 3–4 runs per season, while a single extra OPS point represents ~0.4 runs per 600 AB. The bat-to-glove run value ratio is approximately 10:1.
-
-**GB% and Pull as small signals, not large weights:** GB% and Pull were originally weighted at 12% and 8% of HIT respectively. This created a systematic bias against contact/gap hitters — a player hitting .845 OPS to all fields would score lower than a .803 pull hitter because his high GB% and low Pull% dragged down his HIT score. GB% and Pull are *style* signals, not *outcome* signals. OBP and XBH already capture the outcomes. Reducing these to 4% and 3% means they add a small bonus for pull-power profiles without penalizing other legitimate hitting approaches.
-
-**Conditional positional premiums:** The positional bonus should only apply when the player can actually play the position at a premium level. A CF with below-average speed (Run < 4.5) is really a corner outfielder playing center — giving him the same +1.5 bonus as a true center fielder with elite speed would systematically overrate him. The same logic applies to SS (gated on range) and C (gated on arm strength). Fixed bonuses based purely on the roster position label, regardless of whether the player has the tools to play it, produce rankings that no experienced scout would recognize.
-
-**Positional premiums instead of defensive scoring inflation:** Rather than letting fielding grades inflate overall scores for corner players (a known bug in earlier versions of this model), positional scarcity is handled as a clean additive bonus. This correctly ranks a .850 OPS shortstop above a .850 OPS first baseman without letting IF_Rng artificially boost a first baseman's score.
-
-**W_OPS as the complete pitcher signal:** Early versions of the model added components like Top-2 pitch quality, worst pitch OPS, and strikeout rate on top of W_OPS. All of these are wrong for the same reason: the sim selects pitches from a fixed probability distribution. You cannot instruct your pitcher to throw his fastball more. Because the usage percentages are fixed sim probabilities, W_OPS already captures every aspect of pitch quality — the best pitch is weighted by how often the sim calls it, the worst pitch is weighted by how often the sim calls it, and everything in between. Adding any pitch-specific component on top of W_OPS is double-counting. K/BB is only rewarded as a bonus for true outliers (K/BB > 4.0), never penalized.
-
-**Percentile-anchored W_OPS bins:** Early bin calibration used arbitrary absolute OPS thresholds that compressed the entire top 5–15% of pitchers into two adjacent grade buckets. A pitcher in the top 5% of the pool was getting a grade of 55 — "below average" on the 20-80 scale. The current bins anchor each grade to an actual percentile of the non-ML prospect pitcher pool so that grade 65 genuinely means top 10%, grade 70 means top 5%, and so on. This fixed systematic underrating of quality pen arms whose W_OPS fell just outside the elite tier.
-
-**No GB% for pitchers:** Ground ball rate is already embedded in W_OPS — a pitcher who generates grounders allows fewer hits and fewer home runs, which shows directly in his pitch OPS against. Adding GB% as a separate term double-counts it while penalizing strikeout pitchers who achieve the same W_OPS through a different approach. Both are valid pitcher archetypes; W_OPS correctly treats them equivalently at the same run prevention level.
+| Bonus        | Trigger                                        | Points |
+|--------------|------------------------------------------------|--------|
+| SP quality   | STUFF ≥ 75, SP                                 | +3.0   |
+| SP quality   | STUFF ≥ 70, SP                                 | +2.0   |
+| SP quality   | STUFF ≥ 65, SP                                 | +1.5   |
+| SP quality   | STUFF ≥ 60, SP                                 | +1.0   |
+| Elite closer | RP + W\_OPS < 0.660 + K/BB > 3.0              | +2.0   |
+| Elite BP arm | END 4.0–4.9 + W\_OPS ≤ 0.680 + K/BB > 2.5    | +2.0   |
+| Elite K/BB   | K/BB > 4.0 (any role)                          | +2.0   |
 
 ---
 
 ## Roster Column Reference
-
-The app expects the standard MLBC CSV export format. Key columns used:
 
 **Hitters:** `Bat`, `Throw`, `Run`, `Arm`, `IF_Rng`, `OF_Rng`, `Fld`, `B_H`, `B_B2`, `B_B3`, `B_HR`, `B_BB`, `B_SO`, `vL_OBP`, `vL_SLG`, `vR_OBP`, `vR_SLG`, `Pull`, `B_GB`
 
@@ -324,14 +223,4 @@ The app expects the standard MLBC CSV export format. Key columns used:
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details. Free to use, modify, and share.
-
----
-
-## Contributing
-
-Pull requests welcome. Key areas for improvement:
-- Catcher framing bonus (arm data exists but framing grade does not)
-- Multi-position eligibility display
-- Career trajectory tracking across seasons
-- Draft board mode (A-ball only filter with pick slot context)
+MIT License — see [LICENSE](LICENSE) for details.

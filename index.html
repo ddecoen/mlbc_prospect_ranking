@@ -7,360 +7,314 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
-  :root {
-    --bg: #0a0c0f;
-    --surface: #111418;
-    --surface2: #1a1f26;
-    --border: #252b35;
-    --accent: #e8a020;
-    --accent2: #4a9eff;
-    --accent3: #3ddc84;
-    --text: #e8ecf0;
-    --text2: #8a95a3;
-    --text3: #4a5568;
-    --danger: #ff4757;
-    --pitcher: #4a9eff;
-    --hitter: #3ddc84;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 14px;
-    min-height: 100vh;
-    overflow-x: auto;
-  }
-
-  /* ── HEADER ── */
-  header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0 32px;
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    height: 64px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .logo {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    letter-spacing: 3px;
-    color: var(--accent);
-    white-space: nowrap;
-  }
-  .logo span { color: var(--text2); font-size: 16px; letter-spacing: 1px; margin-left: 8px; }
-  .header-stats {
-    margin-left: auto;
-    display: flex;
-    gap: 24px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    color: var(--text2);
-  }
-  .header-stat strong { color: var(--accent); }
-
-  /* ── UPLOAD ZONE ── */
-  .upload-zone {
-    max-width: 900px;
-    margin: 48px auto;
-    padding: 0 24px;
-  }
-  .upload-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 42px;
-    letter-spacing: 2px;
-    line-height: 1;
-    margin-bottom: 8px;
-  }
-  .upload-title span { color: var(--accent); }
-  .upload-sub {
-    color: var(--text2);
-    margin-bottom: 40px;
-    font-size: 15px;
-  }
-  .upload-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-  .upload-card {
-    background: var(--surface);
-    border: 1px dashed var(--border);
-    border-radius: 8px;
-    padding: 32px 24px;
-    text-align: center;
-    cursor: pointer;
-    transition: all .2s;
-    position: relative;
-  }
-  .upload-card:hover { border-color: var(--accent); background: var(--surface2); }
-  .upload-card.loaded { border-color: var(--accent3); border-style: solid; }
-  .upload-card input[type=file] {
-    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-  }
-  .upload-icon { font-size: 32px; margin-bottom: 12px; }
-  .upload-label {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px;
-    letter-spacing: 1px;
-    margin-bottom: 6px;
-  }
-  .upload-hint { color: var(--text2); font-size: 12px; }
-  .upload-status {
-    font-size: 12px;
-    margin-top: 8px;
-    color: var(--accent3);
-    font-family: 'IBM Plex Mono', monospace;
-  }
-  .run-btn {
-    width: 100%;
-    padding: 16px;
-    background: var(--accent);
-    color: #000;
-    border: none;
-    border-radius: 6px;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 22px;
-    letter-spacing: 2px;
-    cursor: pointer;
-    transition: all .2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-  }
-  .run-btn:hover { background: #f5b030; transform: translateY(-1px); }
-  .run-btn:disabled { background: var(--border); color: var(--text3); cursor: not-allowed; transform: none; }
-
-  /* ── CONTROLS ── */
-  .controls {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 12px 24px;
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-    position: sticky;
-    top: 64px;
-    z-index: 99;
-  }
-  .filter-group { display: flex; align-items: center; gap: 8px; }
-  .filter-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); }
-  select, input[type=text] {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 6px 10px;
-    border-radius: 4px;
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 13px;
-    outline: none;
-  }
-  select:focus, input[type=text]:focus { border-color: var(--accent); }
-  .btn-group { display: flex; gap: 4px; }
-  .btn-toggle {
-    padding: 6px 12px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text2);
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    font-family: 'IBM Plex Mono', monospace;
-    transition: all .15s;
-  }
-  .btn-toggle.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
-  .btn-toggle.active-p { background: var(--pitcher); border-color: var(--pitcher); color: #000; }
-  .btn-toggle.active-h { background: var(--hitter); border-color: var(--hitter); color: #000; }
-  .export-btn {
-    margin-left: auto;
-    padding: 6px 16px;
-    background: transparent;
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    font-family: 'IBM Plex Mono', monospace;
-    transition: all .15s;
-  }
-  .export-btn:hover { background: var(--accent); color: #000; }
-
-  /* ── TABLE ── */
-  .table-wrap {
-    padding: 0 0 80px;
-  }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1200px; }
-  thead th {
-    background: var(--surface);
-    padding: 10px 12px;
-    text-align: left;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .5px;
-    color: var(--text2);
-    border-bottom: 2px solid var(--border);
-    white-space: nowrap;
-    cursor: pointer;
-    user-select: none;
-  }
-  thead th:hover { color: var(--accent); }
-  thead th.sorted { color: var(--accent); }
-  thead th .sort-arrow { margin-left: 4px; opacity: .5; }
-  thead th.sorted .sort-arrow { opacity: 1; }
-  tbody tr {
-    border-bottom: 1px solid var(--border);
-    transition: background .1s;
-  }
-  tbody tr:hover { background: var(--surface2); }
-
-
-  /* rank */
-  .td-rank {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--text3);
-    width: 40px;
-  }
-  .rank-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 20px;
-    border-radius: 3px;
-    font-size: 11px;
-    font-weight: 600;
-  }
-  .rank-1  { background: #ffd700; color: #000; }
-  .rank-2  { background: #c0c0c0; color: #000; }
-  .rank-3  { background: #cd7f32; color: #000; }
-
-  /* name */
-  .td-name { font-weight: 500; }
-  .td-name .fname { color: var(--text2); font-weight: 400; margin-right: 4px; }
-
-  /* type badge */
-  .type-badge {
-    display: inline-block;
-    padding: 2px 7px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-weight: 600;
-    font-family: 'IBM Plex Mono', monospace;
-    letter-spacing: .5px;
-  }
-  .type-P { background: rgba(74,158,255,.15); color: var(--pitcher); }
-  .type-H { background: rgba(61,220,132,.15); color: var(--hitter); }
-
-  /* level badge */
-  .lvl-badge {
-    display: inline-block;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-family: 'IBM Plex Mono', monospace;
-  }
-  .lvl-AAA { background: rgba(232,160,32,.2); color: var(--accent); }
-  .lvl-AA  { background: rgba(232,160,32,.1); color: #b87a10; }
-  .lvl-A   { background: rgba(255,255,255,.05); color: var(--text2); }
-  .lvl-IA  { background: rgba(255,71,87,.1); color: var(--danger); }
-
-  /* ── STACKED GRADE BARS ── */
-  .grade-bars { display: flex; flex-direction: column; gap: 3px; min-width: 160px; }
-  .grade-row { display: flex; align-items: center; gap: 6px; }
-  .grade-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    width: 28px;
-    color: var(--text3);
-    flex-shrink: 0;
-  }
-  .grade-track {
-    flex: 1;
-    height: 8px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 1px;
-    overflow: hidden;
-    position: relative;
-  }
-  .grade-fill {
-    height: 100%;
-    border-radius: 1px;
-    transition: width .3s ease;
-  }
-  .grade-fill-hit    { background: var(--hitter); }
-  .grade-fill-stuff  { background: var(--pitcher); }
-  .grade-fill-fld    { background: #a78bfa; }
-  .grade-fill-ovr    { background: var(--accent); }
-  .grade-fill-end    { background: #ff6b6b; }
-  .grade-num {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    font-weight: 700;
-    width: 32px;
-    text-align: right;
-    flex-shrink: 0;
-  }
-  .grade-num-hit   { color: var(--hitter); }
-  .grade-num-stuff { color: var(--pitcher); }
-  .grade-num-fld   { color: #a78bfa; }
-  .grade-num-ovr   { color: var(--accent); font-size: 13px; }
-  .grade-num-end   { color: #ff6b6b; }
-
-  /* bonus pills */
-  .bonus-pills { display: flex; gap: 3px; flex-wrap: wrap; max-width: 160px; }
-  td { padding: 9px 12px; white-space: nowrap; overflow: hidden; max-width: 200px; }
-  .pill {
-    padding: 1px 5px;
-    border-radius: 2px;
-    font-size: 10px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-weight: 600;
-  }
-  .pill-pos { background: rgba(167,139,250,.2); color: #a78bfa; }
-  .pill-pow { background: rgba(232,160,32,.2); color: var(--accent); }
-  .pill-lo  { background: rgba(61,220,132,.2); color: var(--hitter); }
-  .pill-bat { background: rgba(74,158,255,.2); color: var(--pitcher); }
-  .pill-pen { background: rgba(255,71,87,.2); color: var(--danger); }
-  .pill-sp  { background: rgba(61,220,132,.15); color: var(--hitter); }
-  .pill-rp  { background: rgba(255,71,87,.15); color: var(--danger); }
-
-  /* grade mini */
-  .grade { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text2); }
-  .grade-hi { color: var(--accent3); }
-  .grade-lo { color: var(--danger); }
-
-  /* empty state */
-  .empty-state {
-    text-align: center;
-    padding: 80px 24px;
-    color: var(--text3);
-  }
-  .empty-state .big { font-family: 'Bebas Neue', sans-serif; font-size: 64px; letter-spacing: 2px; color: var(--border); }
-
-  /* spinner */
-  .spinner {
-    display: inline-block;
-    width: 16px; height: 16px;
-    border: 2px solid rgba(0,0,0,.3);
-    border-top-color: #000;
-    border-radius: 50%;
-    animation: spin .6s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* tooltip */
-  [title] { cursor: help; }
+:root {
+  --bg: #0a0c0f;
+  --surface: #111418;
+  --surface2: #1a1f26;
+  --border: #252b35;
+  --accent: #e8a020;
+  --accent2: #4a9eff;
+  --accent3: #3ddc84;
+  --text: #e8ecf0;
+  --text2: #8a95a3;
+  --text3: #4a5568;
+  --danger: #ff4757;
+  --pitcher: #4a9eff;
+  --hitter: #3ddc84;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+  overflow-x: auto;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 64px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 3px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.logo span { color: var(--text2); font-size: 16px; letter-spacing: 1px; margin-left: 8px; }
+.header-stats {
+  margin-left: auto;
+  display: flex;
+  gap: 24px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--text2);
+}
+.header-stat strong { color: var(--accent); }
+.upload-zone {
+  max-width: 900px;
+  margin: 48px auto;
+  padding: 0 24px;
+}
+.upload-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 42px;
+  letter-spacing: 2px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.upload-title span { color: var(--accent); }
+.upload-sub {
+  color: var(--text2);
+  margin-bottom: 40px;
+  font-size: 15px;
+}
+.upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.upload-card {
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 32px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s;
+  position: relative;
+}
+.upload-card:hover { border-color: var(--accent); background: var(--surface2); }
+.upload-card.loaded { border-color: var(--accent3); border-style: solid; }
+.upload-card input[type=file] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.upload-icon { font-size: 32px; margin-bottom: 12px; }
+.upload-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.upload-hint { color: var(--text2); font-size: 12px; }
+.upload-status {
+  font-size: 12px;
+  margin-top: 8px;
+  color: var(--accent3);
+  font-family: 'IBM Plex Mono', monospace;
+}
+.run-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.run-btn:hover { background: #f5b030; transform: translateY(-1px); }
+.run-btn:disabled { background: var(--border); color: var(--text3); cursor: not-allowed; transform: none; }
+.controls {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 64px;
+  z-index: 99;
+}
+.filter-group { display: flex; align-items: center; gap: 8px; }
+.filter-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); }
+select, input[type=text] {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  outline: none;
+}
+select:focus, input[type=text]:focus { border-color: var(--accent); }
+.btn-group { display: flex; gap: 4px; }
+.btn-toggle {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text2);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  transition: all .15s;
+}
+.btn-toggle.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+.btn-toggle.active-p { background: var(--pitcher); border-color: var(--pitcher); color: #000; }
+.btn-toggle.active-h { background: var(--hitter); border-color: var(--hitter); color: #000; }
+.export-btn {
+  margin-left: auto;
+  padding: 6px 16px;
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  transition: all .15s;
+}
+.export-btn:hover { background: var(--accent); color: #000; }
+.table-wrap { padding: 0 0 80px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1200px; }
+thead th {
+  background: var(--surface);
+  padding: 10px 12px;
+  text-align: left;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  color: var(--text2);
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+thead th:hover { color: var(--accent); }
+thead th.sorted { color: var(--accent); }
+thead th .sort-arrow { margin-left: 4px; opacity: .5; }
+thead th.sorted .sort-arrow { opacity: 1; }
+tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+tbody tr:hover { background: var(--surface2); }
+.td-rank { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text3); width: 40px; }
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 20px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.rank-1 { background: #ffd700; color: #000; }
+.rank-2 { background: #c0c0c0; color: #000; }
+.rank-3 { background: #cd7f32; color: #000; }
+.td-name { font-weight: 500; }
+.td-name .fname { color: var(--text2); font-weight: 400; margin-right: 4px; }
+.type-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: .5px;
+}
+.type-P { background: rgba(74,158,255,.15); color: var(--pitcher); }
+.type-H { background: rgba(61,220,132,.15); color: var(--hitter); }
+.lvl-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.lvl-AAA { background: rgba(232,160,32,.2); color: var(--accent); }
+.lvl-AA  { background: rgba(232,160,32,.1); color: #b87a10; }
+.lvl-A   { background: rgba(255,255,255,.05); color: var(--text2); }
+.lvl-IA  { background: rgba(255,71,87,.1); color: var(--danger); }
+.grade-bars { display: flex; flex-direction: column; gap: 3px; min-width: 160px; }
+.grade-row { display: flex; align-items: center; gap: 6px; }
+.grade-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  width: 28px;
+  color: var(--text3);
+  flex-shrink: 0;
+}
+.grade-track {
+  flex: 1;
+  height: 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 1px;
+  overflow: hidden;
+  position: relative;
+}
+.grade-fill { height: 100%; border-radius: 1px; transition: width .3s ease; }
+.grade-fill-hit   { background: var(--hitter); }
+.grade-fill-stuff { background: var(--pitcher); }
+.grade-fill-fld   { background: #a78bfa; }
+.grade-fill-ovr   { background: var(--accent); }
+.grade-fill-end   { background: #ff6b6b; }
+.grade-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.grade-num-hit   { color: var(--hitter); }
+.grade-num-stuff { color: var(--pitcher); }
+.grade-num-fld   { color: #a78bfa; }
+.grade-num-ovr   { color: var(--accent); font-size: 13px; }
+.grade-num-end   { color: #ff6b6b; }
+.bonus-pills { display: flex; gap: 3px; flex-wrap: wrap; max-width: 160px; }
+td { padding: 9px 12px; white-space: nowrap; overflow: hidden; max-width: 200px; }
+.pill {
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+}
+.pill-pos  { background: rgba(167,139,250,.2); color: #a78bfa; }
+.pill-pow  { background: rgba(232,160,32,.2);  color: var(--accent); }
+.pill-lo   { background: rgba(61,220,132,.2);  color: var(--hitter); }
+.pill-bat  { background: rgba(74,158,255,.2);  color: var(--pitcher); }
+.pill-pen  { background: rgba(255,71,87,.2);   color: var(--danger); }
+.pill-sp   { background: rgba(61,220,132,.15); color: var(--hitter); }
+.pill-rp   { background: rgba(255,71,87,.15);  color: var(--danger); }
+.pill-nopos { background: rgba(255,71,87,.25); color: #ff6b6b; }
+.grade { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text2); }
+.grade-hi { color: var(--accent3); }
+.grade-lo { color: var(--danger); }
+.empty-state { text-align: center; padding: 80px 24px; color: var(--text3); }
+.empty-state .big { font-family: 'Bebas Neue', sans-serif; font-size: 64px; letter-spacing: 2px; color: var(--border); }
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(0,0,0,.3);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+[title] { cursor: help; }
 </style>
 </head>
 <body>
@@ -375,11 +329,9 @@
   </div>
 </header>
 
-<!-- UPLOAD SECTION -->
 <div class="upload-zone" id="uploadZone">
   <div class="upload-title">PROSPECT<br><span>RANKING ENGINE</span></div>
   <div class="upload-sub">Upload your MLBC league files to generate prospect rankings based on grades, position value, and sim mechanics.</div>
-
   <div class="upload-grid">
     <div class="upload-card" id="rosterCard">
       <input type="file" id="rosterFile" accept=".csv">
@@ -396,21 +348,19 @@
       <div class="upload-status" id="proStatus"></div>
     </div>
   </div>
-
   <button class="run-btn" id="runBtn" disabled onclick="runModel()">
     GENERATE RANKINGS
   </button>
 </div>
 
-<!-- RESULTS SECTION -->
 <div id="resultsSection" style="display:none">
   <div class="controls">
     <div class="filter-group">
       <span class="filter-label">Type</span>
       <div class="btn-group">
-        <button class="btn-toggle active" id="typeAll"    onclick="setTypeFilter('all')">ALL</button>
-        <button class="btn-toggle" id="typeHitter" onclick="setTypeFilter('H')">HITTERS</button>
-        <button class="btn-toggle" id="typePitcher" onclick="setTypeFilter('P')">PITCHERS</button>
+        <button class="btn-toggle active" id="typeAll"     onclick="setTypeFilter('all')">ALL</button>
+        <button class="btn-toggle"        id="typeHitter"  onclick="setTypeFilter('H')">HITTERS</button>
+        <button class="btn-toggle"        id="typePitcher" onclick="setTypeFilter('P')">PITCHERS</button>
       </div>
     </div>
     <div class="filter-group">
@@ -509,7 +459,7 @@ function checkReady() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// GRADE HELPER
+// GRADE HELPERS
 // ═══════════════════════════════════════════════════════════════
 function gradeVal(val, bins, grades) {
   if (val === null || val === undefined || isNaN(val)) return null;
@@ -521,13 +471,10 @@ function gradeVal(val, bins, grades) {
   return grades[grades.length - 1];
 }
 
-// Continuous grade interpolation — avoids hard cliff at bin edges
-// The top bin is NOT smoothed — truly elite values get the top grade flat
-// (smoothing the top would pull e.g. W_OPS=0.573 down from 80 toward 75)
 function gradeSmooth(val, bins, grades) {
   if (val === null || val === undefined || isNaN(val)) return null;
   val = +val;
-  if (val <= bins[1]) return grades[0];  // top bin: flat grade, no smoothing
+  if (val <= bins[1]) return grades[0]; // top bin: flat, no smoothing
   if (val >= bins[bins.length-1]) return grades[grades.length-1];
   for (let i = 1; i < bins.length - 1; i++) {
     if (val > bins[i] && val <= bins[i+1]) {
@@ -541,10 +488,8 @@ function gradeSmooth(val, bins, grades) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// GRADE BINS — identical to Python model
+// GRADE BINS
 // ═══════════════════════════════════════════════════════════════
-// 13 bin edges = 12 intervals = 12 grades
-// Top interval gets grade 80 (top ~1% of prospect pool)
 const OBP_BINS  = [0.19,0.245,0.265,0.285,0.300,0.315,0.330,0.345,0.360,0.375,0.393,0.411,0.50];
 const OBP_GRD   = [20,25,30,35,40,45,50,55,60,65,75,80];
 const XBH_BINS  = [0,40,62,78,95,107,120,139,159,177,196,244,400];
@@ -562,15 +507,8 @@ const ARM_GRD   = [20,25,30,35,40,45,50,55,60,65,75,80];
 const FLD_BINS  = [0.930,0.950,0.962,0.970,0.976,0.981,0.985,0.988,0.991,0.993,0.995,0.997,1.001];
 const FLD_GRD   = [20,25,30,35,40,45,50,55,60,65,75,80];
 
-// W_OPS bins: elite tier uses absolute thresholds to preserve separation
-// between genuinely elite arms; middle/bottom uses percentile anchoring.
-// Grade 80 = top 0.2% (Lausier/McLaughin/Koufax tier)
-// Grade 75 = top 0.5%, 70 = top 1%, 65 = top 3%, 60 = top 5-8%
-// Grade 55 = top 10-18%, 50 = top 30%, 45 = top 45%, etc.
 const WOPS_BINS = [0.500,0.575,0.595,0.615,0.640,0.660,0.680,0.710,0.745,0.790,0.850,1.000];
-const WOPS_GRD  = [80,   75,   70,   65,   62,   58,   54,   50,   45,   40,   35];
-const KBB_P_BINS= [0.0,0.9,1.2,1.5,1.8,2.1,2.4,2.8,3.2,3.7,4.3,10.0];
-const KBB_P_GRD = [20,25,30,35,40,45,50,55,60,65,70];
+const WOPS_GRD  = [80, 75, 70, 65, 62, 58, 54, 50, 45, 40, 35];
 
 const POS_PREMIUM = {C:3.0,SS:2.0,CF:1.5,'2B':0.5,'3B':0.5,RF:0,LF:0,'1B':-0.5};
 
@@ -578,14 +516,13 @@ const POS_FLD = {
   '1B':{fld:.55,arm:.10,run:.10,rng:'IF',rw:.25},
   '2B':{fld:.20,arm:.25,run:.15,rng:'IF',rw:.40},
   '3B':{fld:.15,arm:.45,run:.10,rng:'IF',rw:.30},
-   SS :{fld:.15,arm:.25,run:.20,rng:'IF',rw:.40},
-   C  :{fld:.25,arm:.65,run:.05,rng:'IF',rw:.05},
-   LF :{fld:.15,arm:.15,run:.30,rng:'OF',rw:.40},
-   CF :{fld:.10,arm:.15,run:.35,rng:'OF',rw:.40},
-   RF :{fld:.15,arm:.45,run:.10,rng:'OF',rw:.30},
+  SS  :{fld:.15,arm:.25,run:.20,rng:'IF',rw:.40},
+  C   :{fld:.25,arm:.65,run:.05,rng:'IF',rw:.05},
+  LF  :{fld:.15,arm:.15,run:.30,rng:'OF',rw:.40},
+  CF  :{fld:.10,arm:.15,run:.35,rng:'OF',rw:.40},
+  RF  :{fld:.15,arm:.45,run:.10,rng:'OF',rw:.30},
 };
 
-// Per-position range z-score state (computed once)
 let posRangeMeans = {}, posRangeStds = {};
 
 function normalCDF(x) {
@@ -594,7 +531,6 @@ function normalCDF(x) {
   let p = d*t*(.3193815+t*(-.3565638+t*(1.7814779+t*(-1.8212560+t*1.3302744))));
   return x > 0 ? 1-p : p;
 }
-
 function posRangeNorm(val, pos, stat) {
   const key = pos+'_'+stat;
   if (!posRangeMeans[key]) return 50;
@@ -602,6 +538,43 @@ function posRangeNorm(val, pos, stat) {
   if (!sig) return 50;
   const z = (val - mu) / sig;
   return normalCDF(z) * 75 + 20;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FIELDING PLAYABILITY RULES
+// ═══════════════════════════════════════════════════════════════
+// Returns { playable, generational }
+// playable=false means zero FLD, no positional premium, apply no-pos penalty
+// generational=true means .970-.974 with OPS>=1.000 — plays trained position normally
+function fieldingPlayability(fldPct, ops, pos) {
+  const isC = pos === 'C';
+
+  // Catchers: arm gates the premium, not fielding % — skip the floor check
+  if (isC) return { playable: true, generational: false };
+
+  if (fldPct >= 0.975) return { playable: true, generational: false };
+
+  // .970–.974 window: generational bat exception
+  if (fldPct >= 0.970) {
+    if (ops >= 1.000) {
+      // Elite bat overrides glove concern — plays trained position, full premium
+      return { playable: true, generational: true };
+    }
+    // Below generational threshold in danger zone — unplayable
+    return { playable: false, generational: false };
+  }
+
+  // Below .970: unplayable, period
+  return { playable: false, generational: false };
+}
+
+// No defensive home penalty — applied when unplayable glove, non-catcher
+// Tier based on OPS and OBP (blended)
+function noPosPenalty(ops, obp) {
+  if (ops >= 0.950) return 0;          // Elite bat — no penalty
+  if (ops >= 0.850) return -1.5;       // Solid bat — can DH passably
+  if (ops >= 0.750 || obp >= 0.380) return -3.0;  // Some traits, no power
+  return -5.0;                          // Nothing to offer without a position
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -614,22 +587,19 @@ function runModel() {
 
   setTimeout(() => {
     try {
-      // Merge Pro Years
       const proMap = {};
       proData.forEach(r => {
         const key = (r.Firstname||r.First||'').trim()+'|'+(r.Lastname||r.Last||'').trim();
         proMap[key] = +(r['Pro Years']||0);
       });
 
-      // Filter prospects: Pro Years == 0 AND age 26 or younger
-      // Level doesn't matter — broke camp with ML club != ML experience
       const prospects = rosterData.filter(r => {
         const key = (r.First||'').trim()+'|'+(r.Last||'').trim();
         const py = proMap[key] ?? 0;
         return py === 0 && +(r.Age||0) <= 25 && r.Level !== '';
       });
 
-      // Compute position range means/stds for hitters
+      // Position range means/stds
       const hitters = prospects.filter(r => r.Pos !== 'P');
       const ifByPos = {}, ofByPos = {};
       hitters.forEach(r => {
@@ -651,30 +621,25 @@ function runModel() {
         posRangeMeans[pos+'_OF'] = mu; posRangeStds[pos+'_OF'] = sig;
       });
 
-      // Score all prospects
       const ranked = prospects.map(r => scoreProspect(r)).filter(Boolean);
       ranked.sort((a,b) => b.overall - a.overall);
       ranked.forEach((r,i) => r.rank = i+1);
       allRanked = ranked;
 
-      // Populate team filter
       const teams = [...new Set(ranked.map(r=>r.team))].sort();
       const tf = document.getElementById('teamFilter');
       tf.innerHTML = '<option value="all">All Teams</option>';
       teams.forEach(t => { const o = document.createElement('option'); o.value=t; o.textContent=t; tf.appendChild(o); });
 
-      // Update header stats
-      document.getElementById('statTotal').textContent   = ranked.length;
-      document.getElementById('statHitters').textContent = ranked.filter(r=>r.type==='H').length;
-      document.getElementById('statPitchers').textContent= ranked.filter(r=>r.type==='P').length;
-      document.getElementById('statSP').textContent      = ranked.filter(r=>r.isSP).length;
+      document.getElementById('statTotal').textContent    = ranked.length;
+      document.getElementById('statHitters').textContent  = ranked.filter(r=>r.type==='H').length;
+      document.getElementById('statPitchers').textContent = ranked.filter(r=>r.type==='P').length;
+      document.getElementById('statSP').textContent       = ranked.filter(r=>r.isSP).length;
       document.getElementById('headerStats').style.display = 'flex';
 
-      // Show results
-      document.getElementById('uploadZone').style.display = 'none';
+      document.getElementById('uploadZone').style.display    = 'none';
       document.getElementById('resultsSection').style.display = 'block';
       applyFilters();
-
     } catch(e) {
       alert('Error running model: '+e.message+'\n\n'+e.stack);
       btn.innerHTML = 'GENERATE RANKINGS';
@@ -685,84 +650,86 @@ function runModel() {
 
 function scoreProspect(r) {
   try {
-    const pos  = (r.Pos||'').trim();
-    const bat  = (r.Bat||'').trim();
-    const throw_ = (r.Throw||'').trim();
-
+    const pos = (r.Pos||'').trim();
     if (pos === 'P') return scorePitcher(r);
-    else             return scoreHitter(r);
+    else return scoreHitter(r);
   } catch(e) { return null; }
 }
 
 function scoreHitter(r) {
-  const pos   = (r.Pos||'').trim();
-  const bat   = (r.Bat||'').trim();
-  const throw_= (r.Throw||'').trim();
+  const pos    = (r.Pos||'').trim();
+  const bat    = (r.Bat||'').trim();
+  const throw_ = (r.Throw||'').trim();
 
-  const obp  = +(r.vL_OBP||0)*.25 + +(r.vR_OBP||0)*.75;
-  const slg  = +(r.vL_SLG||0)*.25 + +(r.vR_SLG||0)*.75;
+  const obpL = +(r.vL_OBP||0);
+  const obpR = +(r.vR_OBP||0);
+  const slgL = +(r.vL_SLG||0);
+  const slgR = +(r.vR_SLG||0);
+  const obp  = obpL*.25 + obpR*.75;
+  const slg  = slgL*.25 + slgR*.75;
   const ops  = obp + slg;
-  const xbh  = +(r.B_HR||0)*4 + +(r.B_B3||0)*3 + +(r.B_B2||0)*2;
-  const kbb  = +(r.B_BB||0) > 0 ? +(r.B_SO||0) / +(r.B_BB||0) : 9.99;
-  const bH   = +(r.B_H||0);
 
-  const obpG_raw = gradeVal(obp,  OBP_BINS,  OBP_GRD);
-  const xbhG  = gradeVal(xbh,  XBH_BINS,  XBH_GRD);
-  const kbbG  = gradeVal(kbb,  KBB_BINS,  KBB_GRD);
-  const gbG   = gradeVal(+(r.B_GB||0), GB_BINS, GB_GRD);
-  const pullG = gradeVal(+(r.Pull||0), PULL_BINS, PULL_GRD);
-  const runG  = gradeVal(+(r.Run||0),  RUN_BINS,  RUN_GRD);
-  const armG  = gradeVal(+(r.Arm||0),  ARM_BINS,  ARM_GRD);
-  const fldG  = gradeVal(+(r.Fld||0),  FLD_BINS,  FLD_GRD);
+  const xbh = +(r.B_HR||0)*4 + +(r.B_B3||0)*3 + +(r.B_B2||0)*2;
+  const kbb = +(r.B_BB||0) > 0 ? +(r.B_SO||0) / +(r.B_BB||0) : 9.99;
+  const bH  = +(r.B_H||0);
 
-  // Contact-credibility discount: a player who can't make contact
-  // cannot sustain a high OBP — the edit splits overstate his on-base ability.
-  // B_H=170 = full credit; B_H=155 = 91% credit; B_H=140 = 82% credit; B_H=125 = 74%
+  const fldPct = +(r.Fld||0);
+
+  // ── FIELDING PLAYABILITY CHECK ──────────────────────────────
+  const { playable, generational } = fieldingPlayability(fldPct, ops, pos);
+
+  const obpG_raw = gradeVal(obp, OBP_BINS, OBP_GRD);
+  const xbhG     = gradeVal(xbh, XBH_BINS, XBH_GRD);
+  const kbbG     = gradeVal(kbb, KBB_BINS, KBB_GRD);
+  const gbG      = gradeVal(+(r.B_GB||0), GB_BINS, GB_GRD);
+  const pullG    = gradeVal(+(r.Pull||0), PULL_BINS, PULL_GRD);
+  const runG     = gradeVal(+(r.Run||0),  RUN_BINS,  RUN_GRD);
+  const armG     = gradeVal(+(r.Arm||0),  ARM_BINS,  ARM_GRD);
+  const fldG     = gradeVal(fldPct,       FLD_BINS,  FLD_GRD);
+
+  // Contact-credibility discount on OBP
   const contactFactor = bH >= 170 ? 1.0 : Math.min(1.0, bH / 170);
   const obpG = Math.round((obpG_raw||0) * contactFactor);
 
   // HIT: OBP 40%, XBH 38%, KBB 15%, GB% 4%, Pull 3%
-  // GB% and Pull are small power-style signals, not large penalties
-  // Contact/gap hitters (high OBP, all-fields approach) should not be
-  // penalized for not being pull power hitters
   const hit = (obpG||0)*.40 + (xbhG||0)*.38 + (kbbG||0)*.15 + (gbG||0)*.04 + (pullG||0)*.03;
 
-  // FLD
-  const isLHthrowIF = throw_==='L' && ['2B','3B','SS'].includes(pos);
+  // ── FLD SCORE ───────────────────────────────────────────────
+  // Unplayable glove → zero FLD regardless of range/arm scores
   let fld;
-  if (isLHthrowIF) {
-    const ofNorm = posRangeNorm(+(r.OF_Rng||0), pos, 'OF');
-    fld = (fldG||0)*.40 + ofNorm*.30 + (armG||0)*.20 + (runG||0)*.10;
+  if (!playable) {
+    fld = 0;
   } else {
-    const w = POS_FLD[pos] || POS_FLD['LF'];
-    const rngNorm = posRangeNorm(+(r[w.rng==='IF'?'IF_Rng':'OF_Rng']||0), pos, w.rng);
-    fld = (fldG||0)*w.fld + rngNorm*w.rw + (armG||0)*w.arm + (runG||0)*w.run;
+    const isLHthrowIF = throw_==='L' && ['2B','3B','SS'].includes(pos);
+    if (isLHthrowIF) {
+      const ofNorm = posRangeNorm(+(r.OF_Rng||0), pos, 'OF');
+      fld = (fldG||0)*.40 + ofNorm*.30 + (armG||0)*.20 + (runG||0)*.10;
+    } else {
+      const w = POS_FLD[pos] || POS_FLD['LF'];
+      const rngNorm = posRangeNorm(+(r[w.rng==='IF'?'IF_Rng':'OF_Rng']||0), pos, w.rng);
+      fld = (fldG||0)*w.fld + rngNorm*w.rw + (armG||0)*w.arm + (runG||0)*w.run;
+    }
   }
 
-  // Positional premium — conditional on athleticism for premium positions
-  // CF: must have real speed to man center; slow CF is a corner OF
-  // Positional bonus — conditional on athleticism for premium positions
-  // C and SS bonuses are also scaled by positional training rating (F_C, F_SS)
-  // A player at F_C=0.51 gets 51% of the catcher bonus — forces proper position training
-  // CF uses speed as the gate since speed can't be trained (fixed in sim)
-  let posBonus;
-  const run   = +(r.Run||0);
+  // ── POSITIONAL PREMIUM ──────────────────────────────────────
+  // Unplayable glove: strip positional premium entirely (except catcher handled above)
+  // Generational bat (.970-.974, OPS>=1.000): plays trained position, full premium
+  const run  = +(r.Run||0);
   const ifRng = +(r.IF_Rng||0);
   const armV  = +(r.Arm||0);
-  const fC    = +(r.F_C||0);
-  const fSS   = +(r.F_SS||0);
-  if (pos === 'CF') {
+  const fC   = +(r.F_C||0);
+  const fSS  = +(r.F_SS||0);
+
+  let posBonus;
+  if (!playable) {
+    // No defensive home — premium stripped
+    posBonus = 0;
+  } else if (pos === 'CF') {
     posBonus = run >= 5.5 ? 1.5 : run >= 4.5 ? 0.75 : 0;
   } else if (pos === 'SS') {
     const rawSS = ifRng >= 5.0 ? 2.0 : ifRng >= 4.0 ? 1.0 : 0.5;
     posBonus = Math.round(rawSS * Math.min(1.0, fSS) * 10) / 10;
   } else if (pos === 'C') {
-    // Catcher bonus requires a genuine catching arm — weak-armed catchers add no premium
-    // Arm >= 8.0: elite (+3.0) — the true unicorn tier (top 25% of catchers)
-    // Arm >= 6.5: good  (+2.0) — solid starter, real value
-    // Arm >= 5.0: fringe (+1.0) — keeps the position, modest premium
-    // Arm <  5.0: no bonus — bat must carry it; defense is a liability
-    // All scaled by F_C training rating (0–1)
     const rawC = armV >= 8.0 ? 3.0
                : armV >= 6.5 ? 2.0
                : armV >= 5.0 ? 1.0
@@ -771,14 +738,22 @@ function scoreHitter(r) {
   } else {
     posBonus = POS_PREMIUM[pos] ?? 0;
   }
+
+  // ── OTHER BONUSES ───────────────────────────────────────────
   const powBonus = ops>=1.050?3.0:ops>=1.000?1.5:ops>=0.950?0.5:0;
-  const loBonus  = (obp>=0.390&&+(r.Run||0)>=5.5)?2.0:(obp>=0.380&&+(r.Run||0)>=5.0)?1.0:0;
+  const loBonus  = (obp>=0.390&&run>=5.5)?2.0:(obp>=0.380&&run>=5.0)?1.0:0;
   const batBonus = bat==='S'?1.0:bat==='L'?0.5:0;
-  // Hit tool floor penalties — steeper than before
-  // B_H=155 is genuinely bad (10th pct); the old -1 was far too lenient
+
+  // Hit tool floor penalty
   const htPen = bH>=170?0 : bH>=160?-1 : bH>=150?-3 : bH>=140?-5 : -8;
 
-  const overall = Math.min(80, hit*.90 + fld*.10 + posBonus + powBonus + loBonus + batBonus + htPen);
+  // ── NO DEFENSIVE HOME PENALTY ────────────────────────────────
+  // Applied when glove is unplayable (non-catcher)
+  const noPosP = !playable ? noPosPenalty(ops, obp) : 0;
+
+  const overall = Math.min(80,
+    hit*.90 + fld*.10 + posBonus + powBonus + loBonus + batBonus + htPen + noPosP
+  );
 
   return {
     rank:0, name:`${r.Last}, ${r.First}`, first:r.First, last:r.Last,
@@ -786,28 +761,25 @@ function scoreHitter(r) {
     age:+r.Age||0, isSP:false,
     overall, hit, fld, stuff:null,
     obpG, xbhG, kbbG, gbG, pullG, runG, armG, fldG,
-    obp, ops, hr:+r.B_HR||0, bb:+r.B_BB||0, so:+r.B_SO||0, run:+r.Run||0,
-    posBonus, powBonus, loBonus, batBonus, htPen,
+    obp, ops, hr:+r.B_HR||0, bb:+r.B_BB||0, so:+r.B_SO||0, run,
+    posBonus, powBonus, loBonus, batBonus, htPen, noPosP,
+    playable, generational, fldPct,
     wops:null, bestOps:null, end:null
   };
 }
 
 function scorePitcher(r) {
-  // Batter handedness from league (LHP faces 76.4% RHH in A-ball)
   const throw_ = (r.Throw||'').trim();
   const wR = throw_==='L' ? 0.764 : 0.647;
   const wL = throw_==='L' ? 0.236 : 0.353;
 
-  // Per-pitch metrics — W_OPS is the only thing that matters
-  // It already captures best pitch, worst pitch, and pitch mix
-  // via the fixed probability weights the sim uses on every pitch
   let totalQual=0, wOps=0;
   for (let i=1; i<=6; i++) {
-    const name= r[`P${i}`];
-    const qual= +(r[`P${i}_Qual`]||0);
+    const name = r[`P${i}`];
+    const qual = +(r[`P${i}_Qual`]||0);
     if (!name || !name.trim() || qual<=0) continue;
-    const opsL= +(r[`P${i}_vL_OBP`]||0) + +(r[`P${i}_vL_SLG`]||0);
-    const opsR= +(r[`P${i}_vR_OBP`]||0) + +(r[`P${i}_vR_SLG`]||0);
+    const opsL = +(r[`P${i}_vL_OBP`]||0) + +(r[`P${i}_vL_SLG`]||0);
+    const opsR = +(r[`P${i}_vR_OBP`]||0) + +(r[`P${i}_vR_SLG`]||0);
     wOps += qual*(opsL*wL + opsR*wR);
     totalQual += qual;
   }
@@ -817,23 +789,13 @@ function scorePitcher(r) {
   const kbb  = +(r.P_BB||0)>0 ? +(r.P_SO||0)/+(r.P_BB||0) : 0;
   const end  = +(r.END||0);
   const isSP = end >= 5.0;
-  const p_gb = +(r.P_GB||0);
   const p_bb = +(r.P_BB||0);
-
-  // Smooth interpolation for W_OPS avoids hard grade cliffs at bin edges
-  const wOpsG = gradeSmooth(wOpsAvg, WOPS_BINS, WOPS_GRD);
-
-  // STUFF = pure W_OPS — complete pitch quality signal
-  const stuff = wOpsG||0;
-
   const p_h  = +(r.P_H||0);
 
-  // Walk penalty -- context-aware sliding scale
-  // Penalizes poor command but discounts when total baserunners (H+BB) are controlled.
-  // H+BB < 170: penalty x0.25 (walks acceptable -- good hit suppression)
-  // H+BB 170-200: penalty x0.50 (manageable but watch it)
-  // H+BB > 200: full penalty (walks compounding a hit problem)
-  const bbBase = p_bb > 75  ? -3.0
+  const wOpsG = gradeSmooth(wOpsAvg, WOPS_BINS, WOPS_GRD);
+  const stuff = wOpsG||0;
+
+  const bbBase = p_bb > 75 ? -3.0
                : p_bb >= 70 ? -2.0
                : p_bb >= 65 ? -1.75
                : p_bb >= 60 ? -1.5
@@ -843,31 +805,21 @@ function scorePitcher(r) {
   const bbMult  = hPlusBB < 170 ? 0.25 : hPlusBB < 200 ? 0.50 : 1.0;
   const bbPen   = bbBase * bbMult;
 
-  // END gate: starter vs reliever
   const endMod = isSP ? 0 : -3;
 
-  // Elite closer: RP with ace-level stuff (W_OPS<.660) + elite command (K/BB>3.0)
   const eliteCloserBonus = (!isSP && wOpsAvg < 0.660 && kbb > 3.0) ? 2.0 : 0;
+  const eliteBPBonus     = (!isSP && end >= 4.0 && wOpsAvg <= 0.680 && kbb > 2.5) ? 2.0 : 0;
 
-  // Elite BP arm: swingman tier (END 4.0-4.9) with quality stuff + command
-  const eliteBPBonus = (!isSP && end >= 4.0 && wOpsAvg <= 0.680 && kbb > 2.5) ? 2.0 : 0;
+  const stuffCapped  = Math.min(80, stuff);
+  const atCeiling    = stuffCapped >= 80;
 
-  const stuffCapped = Math.min(80, stuff);
-
-  // Bonuses lift pitchers whose raw STUFF undersells their value vs hitters.
-  // At the grade ceiling (STUFF=80), no upward bonus applies — penalties still do.
-  const atCeiling = stuffCapped >= 80;
-
-  // Elite K/BB bonus: outlier command (K/BB>4.0, top ~3% of pool)
   const eliteKBBBonus = (!atCeiling && kbb > 4.0) ? 2.0 : 0;
-
-  // SP quality bonus: elite starters deserve parity with bonus-stacking hitters
   const spBonus = (!atCeiling && isSP)
     ? (stuffCapped >= 75 ? 3.0
-      : stuffCapped >= 70 ? 2.0
-      : stuffCapped >= 65 ? 1.5
-      : stuffCapped >= 60 ? 1.0
-      : 0)
+     : stuffCapped >= 70 ? 2.0
+     : stuffCapped >= 65 ? 1.5
+     : stuffCapped >= 60 ? 1.0
+     : 0)
     : 0;
 
   const overall = Math.min(80, stuffCapped + endMod + bbPen + eliteCloserBonus + eliteBPBonus + eliteKBBBonus + spBonus);
@@ -880,7 +832,8 @@ function scorePitcher(r) {
     obpG:null, xbhG:null, kbbG:null, gbG:null, pullG:null,
     runG:null, armG:null, fldG:null,
     obp:null, ops:null, hr:null, bb:null, so:null, run:null,
-    posBonus:null, powBonus:null, loBonus:null, batBonus:null, htPen:null,
+    posBonus:null, powBonus:null, loBonus:null, batBonus:null, htPen:null, noPosP:null,
+    playable:null, generational:null, fldPct:null,
     wops:wOpsAvg, end, kbb, isSP, p_bb,
     eliteCloserBonus, eliteBPBonus, eliteKBBBonus, bbPen, spBonus,
     p_so:+(r.P_SO||0), p_bb:+(r.P_BB||0), p_gb:+(r.P_GB||0)
@@ -891,11 +844,12 @@ function scorePitcher(r) {
 // FILTERS & SORT
 // ═══════════════════════════════════════════════════════════════
 let typeFilter = 'all';
+
 function setTypeFilter(t) {
   typeFilter = t;
-  document.getElementById('typeAll').className    = 'btn-toggle' + (t==='all'?' active':'');
-  document.getElementById('typeHitter').className = 'btn-toggle' + (t==='H'?' active-h active':'');
-  document.getElementById('typePitcher').className= 'btn-toggle' + (t==='P'?' active-p active':'');
+  document.getElementById('typeAll').className     = 'btn-toggle' + (t==='all'?' active':'');
+  document.getElementById('typeHitter').className  = 'btn-toggle' + (t==='H'?' active-h active':'');
+  document.getElementById('typePitcher').className = 'btn-toggle' + (t==='P'?' active-p active':'');
   applyFilters();
 }
 
@@ -913,8 +867,6 @@ function applyFilters() {
     if (search && !r.name.toLowerCase().includes(search)) return false;
     return true;
   });
-
-  // Re-rank within filter
   filtered.forEach((r,i) => r.filteredRank = i+1);
   renderTable();
 }
@@ -922,8 +874,6 @@ function applyFilters() {
 function sortBy(col) {
   if (sortCol === col) sortDir *= -1;
   else { sortCol = col; sortDir = -1; }
-  document.querySelectorAll('thead th').forEach(th => th.classList.remove('sorted'));
-  // Update header
   renderTable();
 }
 
@@ -942,16 +892,14 @@ function renderTable() {
     fld:     (a,b) => (a.fld||0) - (b.fld||0),
   }[sortCol] || ((a,b)=>a.overall-b.overall);
 
-  const rows = [...filtered].sort((a,b)=>sortDir*sortFn(a,b));
+  const rows  = [...filtered].sort((a,b)=>sortDir*sortFn(a,b));
   const tbody = document.getElementById('tableBody');
   const empty = document.getElementById('emptyState');
 
-  if (rows.length === 0) {
-    tbody.innerHTML=''; empty.style.display='block'; return;
-  }
-  empty.style.display='none';
+  if (rows.length === 0) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
 
-  tbody.innerHTML = rows.map((r,idx) => {
+  tbody.innerHTML = rows.map((r) => {
     const dispRank = r.rank;
     const rankBadge = dispRank<=3
       ? `<span class="rank-badge rank-${dispRank}">${dispRank}</span>`
@@ -959,11 +907,8 @@ function renderTable() {
 
     const ov    = r.overall.toFixed(1);
     const ovPct = Math.min(100, Math.max(0, (r.overall - 20) / 75 * 100));
+    const pct   = v => v ? Math.min(100, Math.max(0, (v-20)/60*100)).toFixed(1) : 0;
 
-    // Helper: pct fill for grade bars (20-80 scale)
-    const pct = v => v ? Math.min(100, Math.max(0, (v-20)/60*100)).toFixed(1) : 0;
-
-    // Stacked grade bars — mimics the sim site's END/STF/OVR layout
     let gradeBars;
     if (r.type === 'H') {
       const hitPct = pct(r.hit);
@@ -986,9 +931,8 @@ function renderTable() {
         </div>
       </div>`;
     } else {
-      const endVal  = r.end ? Math.min(80, Math.max(20, r.end * 10)).toFixed(0) : '—';
-      const endPct  = r.end ? Math.min(100,(r.end*10-20)/60*100).toFixed(1) : 0;
-      const stfPct  = pct(r.stuff);
+      const endPct = r.end ? Math.min(100,(r.end*10-20)/60*100).toFixed(1) : 0;
+      const stfPct = pct(r.stuff);
       gradeBars = `<div class="grade-bars">
         <div class="grade-row">
           <span class="grade-label">END</span>
@@ -1008,73 +952,65 @@ function renderTable() {
       </div>`;
     }
 
-    // Grades
+    // Grades column
     let gradesHtml = '';
-    if (r.type==='H') {
-      const g = (v,lo=45,hi=65) => v===null?'—':`<span class="${v>=hi?'grade-hi':v<=lo?'grade-lo':'grade'}">${v}</span>`;
-      gradesHtml = `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)">
-        OBP:${g(r.obpG)} XBH:${g(r.xbhG)} K/BB:${g(r.kbbG,45,65)} FLD:${g(r.fldG)}
-      </span>`;
+    if (r.type === 'H') {
+      const obpCls  = r.obpG>=65?'grade-hi':r.obpG<=35?'grade-lo':'grade';
+      const xbhCls  = r.xbhG>=65?'grade-hi':r.xbhG<=35?'grade-lo':'grade';
+      const kbbCls  = r.kbbG>=65?'grade-hi':r.kbbG<=35?'grade-lo':'grade';
+      gradesHtml = `<span class="${obpCls}" title="OBP Grade">OBP:${r.obpG??'—'}</span>
+        <span class="${xbhCls}" title="XBH Grade" style="margin-left:6px">XBH:${r.xbhG??'—'}</span>
+        <span class="${kbbCls}" title="K/BB Grade" style="margin-left:6px">K/BB:${r.kbbG??'—'}</span>`;
     } else {
-      const g = (v,lo=45,hi=65) => v===null?'—':`<span class="${v>=hi?'grade-hi':v<=lo?'grade-lo':'grade'}">${v}</span>`;
-      gradesHtml = `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)">
-        WOPS:${g(gradeVal(r.wops,WOPS_BINS,WOPS_GRD))} KBB:${g(gradeVal(r.kbb,KBB_P_BINS,KBB_P_GRD))}
-      </span>`;
+      const wopsCls = r.stuff>=65?'grade-hi':r.stuff<=35?'grade-lo':'grade';
+      gradesHtml = `<span class="${wopsCls}" title="WOPS Grade">WOPS:${r.stuff?r.stuff.toFixed(0):'—'}</span>
+        <span class="grade" title="K/BB" style="margin-left:6px">KBB:${r.kbb?r.kbb.toFixed(1):'—'}</span>`;
     }
 
-    // Bonuses
-    let bonuses = '<div class="bonus-pills">';
-    if (r.type==='H') {
-      if (r.posBonus>0)  bonuses+=`<span class="pill pill-pos" title="Positional premium">${r.pos}+${r.posBonus}</span>`;
-      if (r.posBonus<0)  bonuses+=`<span class="pill pill-pen" title="Positional penalty">${r.pos}${r.posBonus}</span>`;
-      if (r.powBonus>0)  bonuses+=`<span class="pill pill-pow" title="Power bonus (OPS≥.950)">PWR+${r.powBonus}</span>`;
-      if (r.loBonus>0)   bonuses+=`<span class="pill pill-lo"  title="Leadoff bonus (OBP+Speed)">LO+${r.loBonus}</span>`;
-      if (r.batBonus>0)  bonuses+=`<span class="pill pill-bat" title="Switch/LH bonus">${r.bat}+${r.batBonus}</span>`;
-      if (r.htPen<0)     bonuses+=`<span class="pill pill-pen" title="Hit tool penalty (B_H<170): contact risk discounts OBP grade + flat penalty">HT${r.htPen}</span>`;
+    // Bonus pills
+    let pills = '';
+    if (r.type === 'H') {
+      if (r.posBonus > 0)  pills += `<span class="pill pill-pos" title="Positional premium">POS+${r.posBonus.toFixed(1)}</span>`;
+      if (r.posBonus < 0)  pills += `<span class="pill pill-pen" title="Position penalty">POS${r.posBonus.toFixed(1)}</span>`;
+      if (r.powBonus > 0)  pills += `<span class="pill pill-pow" title="Power bonus">PWR+${r.powBonus.toFixed(1)}</span>`;
+      if (r.loBonus > 0)   pills += `<span class="pill pill-lo"  title="Leadoff bonus">LO+${r.loBonus.toFixed(1)}</span>`;
+      if (r.batBonus > 0)  pills += `<span class="pill pill-bat" title="Bat hand bonus">BAT+${r.batBonus.toFixed(1)}</span>`;
+      if (r.htPen < 0)     pills += `<span class="pill pill-pen" title="Hit tool penalty">HIT${r.htPen}</span>`;
+      if (r.noPosP < 0)    pills += `<span class="pill pill-nopos" title="No defensive home penalty">NO-POS${r.noPosP.toFixed(1)}</span>`;
+      if (r.generational)  pills += `<span class="pill pill-pow" title="Generational bat exception (.970-.974 glove)">GEN-BAT</span>`;
     } else {
-      bonuses += r.isSP
-        ? `<span class="pill pill-sp" title="Starter eligible (END≥5.0)">SP</span>`
-        : `<span class="pill pill-rp" title="Reliever only (END<5.0)">RP-3</span>`;
-      if (r.spBonus > 0)
-        bonuses += `<span class="pill pill-sp" title="SP quality bonus: elite workhorse starter">ACE+${r.spBonus.toFixed(0)}</span>`;
-      if (r.eliteCloserBonus > 0)
-        bonuses += `<span class="pill pill-pow" title="Elite closer: W_OPS<.660 + K/BB>3.0">CLOSER+2</span>`;
-      if (r.eliteBPBonus > 0)
-        bonuses += `<span class="pill pill-lo" title="Elite BP arm: END 4-4.9, W_OPS≤.680, K/BB>2.5">BP+2</span>`;
-      if (r.eliteKBBBonus > 0)
-        bonuses += `<span class="pill pill-bat" title="Elite command: K/BB>4.0 (top 3% of pool)">KBB+2</span>`;
-      if (r.bbPen < 0)
-        bonuses += `<span class="pill pill-pen" title="Walk penalty (P_BB≥55)">BB${r.bbPen.toFixed(1)}</span>`;
+      pills += `<span class="pill ${r.isSP?'pill-sp':'pill-rp'}">${r.isSP?'SP':'RP'}</span>`;
+      if (r.spBonus > 0)           pills += `<span class="pill pill-sp"  title="SP quality bonus">SP+${r.spBonus.toFixed(1)}</span>`;
+      if (r.eliteCloserBonus > 0)  pills += `<span class="pill pill-sp"  title="Elite closer bonus">CLSR+2</span>`;
+      if (r.eliteBPBonus > 0)      pills += `<span class="pill pill-sp"  title="Elite BP arm bonus">BP+2</span>`;
+      if (r.eliteKBBBonus > 0)     pills += `<span class="pill pill-sp"  title="Elite K/BB bonus">KBB+2</span>`;
+      if (r.bbPen < 0)             pills += `<span class="pill pill-pen" title="Walk penalty">BB${r.bbPen.toFixed(1)}</span>`;
+      if (!r.isSP)                 pills += `<span class="pill pill-pen" title="RP gate">RP-3</span>`;
     }
-    bonuses += '</div>';
 
-    // Details
+    // Details column
     let details = '';
-    if (r.type==='H') {
-      details = `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)">
-        OPS:${r.ops?.toFixed(3)} HR:${r.hr} BB:${r.bb} K:${r.so}
-      </span>`;
+    if (r.type === 'H') {
+      details = `OPS:${r.ops?r.ops.toFixed(3):'—'} HR:${r.hr??'—'} BB:${r.bb??'—'} Run:${r.run??'—'}`;
+      if (!r.playable) details += ` <span style="color:var(--danger);font-size:10px">FLD%:${r.fldPct?r.fldPct.toFixed(3):'—'}⚠</span>`;
     } else {
-      details = `<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)">
-        WOPS:${r.wops?.toFixed(3)} K/BB:${r.kbb?.toFixed(2)} END:${r.end?.toFixed(2)}
-      </span>`;
+      details = `WOPS:${r.wops?r.wops.toFixed(3):'—'} BB:${r.p_bb??'—'} K:${r.p_so??'—'}`;
     }
 
-    const lvlClass = `lvl-${r.level}`;
-    const typeClass = `type-${r.type}`;
+    const lvlCls = `lvl-${r.level}`;
 
     return `<tr>
       <td class="td-rank">${rankBadge}</td>
       <td class="td-name"><span class="fname">${r.first}</span>${r.last}</td>
-      <td><span class="type-badge ${typeClass}">${r.type==='P'?'PITCHER':'HITTER'}</span></td>
-      <td style="font-family:'IBM Plex Mono',monospace;font-weight:600">${r.pos}</td>
-      <td style="color:var(--text2)">${r.age}</td>
-      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${r.team}</td>
-      <td><span class="lvl-badge ${lvlClass}">${r.level}</span></td>
+      <td><span class="type-badge type-${r.type}">${r.type}</span></td>
+      <td>${r.pos}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${r.age}</td>
+      <td style="color:var(--text2);font-size:12px">${r.team}</td>
+      <td><span class="lvl-badge ${lvlCls}">${r.level}</span></td>
       <td>${gradeBars}</td>
-      <td>${gradesHtml}</td>
-      <td>${bonuses}</td>
-      <td>${details}</td>
+      <td style="font-size:11px;line-height:1.8">${gradesHtml}</td>
+      <td><div class="bonus-pills">${pills}</div></td>
+      <td style="font-size:11px;color:var(--text2)">${details}</td>
     </tr>`;
   }).join('');
 }
@@ -1083,21 +1019,35 @@ function renderTable() {
 // EXPORT
 // ═══════════════════════════════════════════════════════════════
 function exportCSV() {
-  const rows = [...filtered].sort((a,b) => b.overall - a.overall);
-  const cols = ['rank','last','first','type','pos','bat','team','level','age',
-                'overall','hit','stuff','fld',
-                'obp','ops','hr','bb','so',
-                'wops','bestOps','end','kbb','p_so','p_gb',
-                'posBonus','powBonus','loBonus','batBonus','htPen',
-                'obpG','xbhG','kbbG','gbG','fldG','runG','armG'];
-  const header = cols.join(',');
-  const body = rows.map(r => cols.map(c => {
-    const v = r[c];
-    return v===null||v===undefined ? '' : typeof v==='number' ? v.toFixed(2) : `"${v}"`;
-  }).join(',')).join('\n');
-  const blob = new Blob([header+'\n'+body], {type:'text/csv'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download='mlbc_prospect_rankings.csv'; a.click();
+  const rows = [...filtered].sort((a,b) => a.rank - b.rank);
+  const headers = ['Rank','Name','Type','Pos','Age','Team','Level','Overall','HIT','FLD','STUFF','OBP_G','XBH_G','KBB_G','OPS','HR','BB','WOPS','END','PosBonus','PowBonus','LOBonus','BatBonus','HTPen','NoPosP','Playable'];
+  const lines = [headers.join(',')];
+  rows.forEach(r => {
+    lines.push([
+      r.rank, `"${r.name}"`, r.type, r.pos, r.age, r.team, r.level,
+      r.overall.toFixed(2),
+      r.hit!=null?r.hit.toFixed(2):'',
+      r.fld!=null?r.fld.toFixed(2):'',
+      r.stuff!=null?r.stuff.toFixed(2):'',
+      r.obpG??'', r.xbhG??'', r.kbbG??'',
+      r.ops!=null?r.ops.toFixed(3):'',
+      r.hr??'', r.bb??'',
+      r.wops!=null?r.wops.toFixed(3):'',
+      r.end!=null?r.end.toFixed(1):'',
+      r.posBonus!=null?r.posBonus:'',
+      r.powBonus!=null?r.powBonus:'',
+      r.loBonus!=null?r.loBonus:'',
+      r.batBonus!=null?r.batBonus:'',
+      r.htPen!=null?r.htPen:'',
+      r.noPosP!=null?r.noPosP:'',
+      r.playable!=null?r.playable:''
+    ].join(','));
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'mlbc_prospects.csv';
+  a.click();
 }
 </script>
 </body>
