@@ -697,11 +697,30 @@ function scoreHitter(r) {
   // ── FLD SCORE ───────────────────────────────────────────────
   // Unplayable glove → zero FLD regardless of range/arm scores
   let fld;
+  let fldScoredAs = pos; // track which position weights were used (for display)
   if (!playable) {
     fld = 0;
   } else {
     const isLHthrowIF = throw_==='L' && ['2B','3B','SS'].includes(pos);
-    if (isLHthrowIF) {
+    const isLHcatcher = throw_==='L' && pos === 'C';
+
+    if (isLHcatcher) {
+      // LH catchers can't fully man the position — score FLD as their best
+      // eligible non-C position. LH fielders can play 1B, LF, RF (not CF, not IF).
+      // Pick whichever has the highest familiarity rating; default RF if none trained.
+      const eligible = ['1B','LF','RF'];
+      const fRatings = {
+        '1B': +(r.F_1B||0), 'LF': +(r.F_LF||0), 'RF': +(r.F_RF||0)
+      };
+      let bestPos = 'RF', bestRating = -1;
+      eligible.forEach(p => {
+        if (fRatings[p] > bestRating) { bestRating = fRatings[p]; bestPos = p; }
+      });
+      fldScoredAs = bestPos;
+      const w = POS_FLD[bestPos];
+      const rngNorm = posRangeNorm(+(r.OF_Rng||0), bestPos, 'OF');
+      fld = (fldG||0)*w.fld + rngNorm*w.rw + (armG||0)*w.arm + (runG||0)*w.run;
+    } else if (isLHthrowIF) {
       const ofNorm = posRangeNorm(+(r.OF_Rng||0), pos, 'OF');
       fld = (fldG||0)*.40 + ofNorm*.30 + (armG||0)*.20 + (runG||0)*.10;
     } else {
@@ -766,7 +785,7 @@ function scoreHitter(r) {
     obpG, xbhG, kbbG, gbG, pullG, runG, armG, fldG,
     obp, ops, hr:+r.B_HR||0, bb:+r.B_BB||0, so:+r.B_SO||0, run,
     posBonus, powBonus, loBonus, batBonus, htPen, noPosP,
-    playable, generational, fldPct,
+    playable, generational, fldPct, fldScoredAs,
     wops:null, bestOps:null, end:null
   };
 }
@@ -996,6 +1015,7 @@ function renderTable() {
     if (r.type === 'H') {
       details = `OPS:${r.ops?r.ops.toFixed(3):'—'} HR:${r.hr??'—'} BB:${r.bb??'—'} Run:${r.run??'—'}`;
       if (!r.playable) details += ` <span style="color:var(--danger);font-size:10px">FLD%:${r.fldPct?r.fldPct.toFixed(3):'—'}⚠</span>`;
+      if (r.fldScoredAs && r.fldScoredAs !== r.pos) details += ` <span style="color:var(--accent);font-size:10px">FLD@${r.fldScoredAs}</span>`;
     } else {
       details = `WOPS:${r.wops?r.wops.toFixed(3):'—'} BB:${r.p_bb??'—'} K:${r.p_so??'—'}`;
     }

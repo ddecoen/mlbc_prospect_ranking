@@ -129,6 +129,8 @@ Premium positions (CF, SS, C) have athleticism-conditional bonuses. C and SS bon
 | C (LH)   | Any arm tier               | 50% of RH | × F\_C × 0.5             |
 
 **LH throwing catchers** receive half the arm bonus of an equivalent RH catcher. Left-handed throwers have a mechanical disadvantage throwing to bases from behind the plate — the same principle that prevents LH throwers from playing 2B/3B/SS. A LH catcher with Arm 8.0 and F\_C=1.0 earns +1.5 instead of +3.0.
+
+**LH catcher FLD scoring:** Because a LH catcher may not be able to fully man the position, their FLD component is scored using their best eligible non-C position rather than catcher weights. Eligible positions for LH throwers are 1B, LF, and RF (not CF, 2B, 3B, or SS). The model checks F\_1B, F\_LF, and F\_RF familiarity ratings and uses the highest-trained position; if none are trained it defaults to RF. The positional premium in the bonus column still reflects the C listing (with the 50% LH penalty applied). A gold FLD@RF (or FLD@1B / FLD@LF) label appears in the details column when this override is active.
 | SS       | IF\_Rng ≥ 5.0 | +2.0      | × F\_SS |
 | SS       | IF\_Rng ≥ 4.0 | +1.0      | × F\_SS |
 | SS       | IF\_Rng < 4.0 | +0.5      | × F\_SS |
