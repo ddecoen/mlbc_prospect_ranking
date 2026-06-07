@@ -734,7 +734,10 @@ function scoreHitter(r) {
                : armV >= 6.5 ? 2.0
                : armV >= 5.0 ? 1.0
                : 0;
-    posBonus = Math.round(rawC * Math.min(1.0, fC) * 10) / 10;
+    // LH throwing catchers get 50% of the arm bonus — mechanical disadvantage
+    // throwing to bases (same logic as LH infielder rule; catching is a throwing position)
+    const lhCatcherMult = throw_ === 'L' ? 0.5 : 1.0;
+    posBonus = Math.round(rawC * Math.min(1.0, fC) * lhCatcherMult * 10) / 10;
   } else {
     posBonus = POS_PREMIUM[pos] ?? 0;
   }

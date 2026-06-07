@@ -120,12 +120,15 @@ Shows as `NO-POS−X.X` pill in the BONUSES column.
 
 Premium positions (CF, SS, C) have athleticism-conditional bonuses. C and SS bonuses are additionally scaled by positional training rating (F_C, F_SS on 0–1 scale).
 
-| Position | Condition     | Raw Bonus | Scaling |
-|----------|---------------|-----------|---------|
-| C        | Arm ≥ 8.0     | +3.0      | × F\_C  |
-| C        | Arm ≥ 6.5     | +2.0      | × F\_C  |
-| C        | Arm ≥ 5.0     | +1.0      | × F\_C  |
-| C        | Arm < 5.0     | 0         | —       |
+| Position | Condition                  | Raw Bonus | Scaling                  |
+|----------|----------------------------|-----------|--------------------------|
+| C (RH)   | Arm ≥ 8.0                  | +3.0      | × F\_C                   |
+| C (RH)   | Arm ≥ 6.5                  | +2.0      | × F\_C                   |
+| C (RH)   | Arm ≥ 5.0                  | +1.0      | × F\_C                   |
+| C (RH)   | Arm < 5.0                  | 0         | —                        |
+| C (LH)   | Any arm tier               | 50% of RH | × F\_C × 0.5             |
+
+**LH throwing catchers** receive half the arm bonus of an equivalent RH catcher. Left-handed throwers have a mechanical disadvantage throwing to bases from behind the plate — the same principle that prevents LH throwers from playing 2B/3B/SS. A LH catcher with Arm 8.0 and F\_C=1.0 earns +1.5 instead of +3.0.
 | SS       | IF\_Rng ≥ 5.0 | +2.0      | × F\_SS |
 | SS       | IF\_Rng ≥ 4.0 | +1.0      | × F\_SS |
 | SS       | IF\_Rng < 4.0 | +0.5      | × F\_SS |
